@@ -11,12 +11,12 @@
             (.getResource path)) 
         path)))
 
-(defn conf-name []  ;; TODO: find app name, if there, use "app-name.conf" instead of "config.edn"
-  "config.edn")
+(defn path-var []  ;; TODO: find app name, if there, use "app-name.conf" instead of "config.edn"
+  "conf")
 
 (defonce props
   (delay
-    (let [c-path (conf-name)]
+    (let [c-path (path-var)]
       (if-let [path (System/getProperty c-path)]
         (try
           (edn/read-string 

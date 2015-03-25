@@ -8,4 +8,4 @@
             
   :source-paths ["src" "src/cprop"]
             
-  :profiles {:dev {:jvm-opts ["-Dconfig.edn=resources/config.edn"]}})
+  :profiles {:dev {:jvm-opts ["-Dconf=resources/config.edn"]}})
