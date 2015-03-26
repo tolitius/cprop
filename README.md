@@ -13,7 +13,7 @@ there are several env/config ways, libraries.
 
 ## What does it do?
 
-cprop looks for a `conf` var, that is a path to a config file, and edn/reads all the properties from there.
+cprop looks for a `conf` var, that is a path to a config file, edn/reads all the properties from there, and makes it available via a `conf` function.
 
 ## How
 
@@ -64,7 +64,7 @@ After cprop reads this, it has all of the properties available via a `conf` func
 
 ###Cursors
 
-It would be somewhat inconvenient to repeat `:source :account :rabbit :vhost` over in over in different pieces of the code that need rabbit values.
+It would be somewhat inconvenient to repeat `:source :account :rabbit :vhost` over and over in different pieces of the code that need rabbit values.
 
 That's where the cursors help a lot:
 
