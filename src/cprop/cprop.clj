@@ -31,5 +31,9 @@
 (defn conf [& path]                  ;; e.g. (conf :datomic :url)
   (get-in @props (vec path)))
 
+(defn cursor [& path]
+  (fn [& xs]
+    (apply conf (concat path xs))))
+
 ;; (defn confa-x [& ps]
 ;;   (apply conf (concat [:x :y] ps)))
