@@ -82,9 +82,9 @@ much better.
 
 ####Composable Cursors
 
-In case you pass a cursor somewhere, you can still build new cursors out of it by simply composing them:
+In case you pass a cursor somewhere, you can still build new cursors out of it by simply _composing_ them.
 
-working with the same config:
+working with the same config as in the example above:
 
 ```clojure
 {:datamic 
@@ -112,7 +112,7 @@ user=> (src :account)
 {:rabbit {:host "127.0.0.1", :port 5672, :vhost "/z-broker", :username "guest", :password "guest"}}
 ```
 
-now an `account` can be created out of the `src` one as:
+now an `account` cursor can be created out of the `src` one as:
 
 ```clojure
 user=> (def account (cursor src :account))
