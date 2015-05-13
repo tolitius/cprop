@@ -14,22 +14,23 @@
 (defn path-var []  ;; TODO: find app name, if there, use "app-name.conf" instead of "config.edn"
   "conf")
 
-(defonce props
-  (delay
-    (let [c-path (path-var)]
-      (if-let [path (System/getProperty c-path)]
-        (try
-          (edn/read-string 
-            (slurp (io/file (resource path))))
-          (catch Exception e 
-            (throw (IllegalArgumentException. 
-                     (str "a path to " c-path " \"" path "\" can't be found or have an invalid config (problem with the format?) " e)))))
-        (throw (MissingResourceException. 
-                (str "can't find a \"" c-path "\" env variable that points to a configuration file (usually in a form of -D" c-path "=<path>)")
-                "" ""))))))
+(defn- slurp-props []
+  (let [c-path (path-var)]
+    (if-let [path (System/getProperty c-path)]
+      (try
+        (edn/read-string 
+          (slurp (io/file (resource path))))
+        (catch Exception e 
+          (throw (IllegalArgumentException. 
+                   (str "a path to " c-path " \"" path "\" can't be found or have an invalid config (problem with the format?) " e)))))
+      (throw (MissingResourceException. 
+              (str "can't find a \"" c-path "\" env variable that points to a configuration file (usually in a form of -D" c-path "=<path>)")
+              "" "")))))
+
+(def props (memoize slurp-props))
 
 (defn conf [& path]                  ;; e.g. (conf :datomic :url)
-  (get-in @props (vec path)))
+  (get-in (props) (vec path)))
 
 (defn- create-cursor [path]
   (with-meta 
