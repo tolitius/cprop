@@ -80,6 +80,58 @@ That's where the cursors help a lot:
 
 much better.
 
+####Composable Cursors
+
+In case you pass a cursor somewhere, you can still build new cursors out of it by simply composing them:
+
+working with the same config:
+
+```clojure
+{:datamic 
+    {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}
+ :source
+    {:account
+        {:rabbit
+           {:host "127.0.0.1"
+            :port 5672
+            :vhost "/z-broker"
+            :username "guest"
+            :password "guest"}}}
+ :answer 42}
+```
+
+creating a simple cursor to source:
+
+```clojure
+user=> (def src (cursor :source))
+#'user/src
+user=> (src)
+{:account {:rabbit {:host "127.0.0.1", :port 5672, :vhost "/z-broker", :username "guest", :password "guest"}}}
+
+user=> (src :account)
+{:rabbit {:host "127.0.0.1", :port 5672, :vhost "/z-broker", :username "guest", :password "guest"}}
+```
+
+now an `account` can be created out of the `src` one as:
+
+```clojure
+user=> (def account (cursor src :account))
+#'user/account
+
+user=> (account :rabbit)
+{:host "127.0.0.1", :port 5672, :vhost "/z-broker", :username "guest", :password "guest"}
+```
+
+or any nested cursor for that matter:
+
+```clojure
+user=> (def rabbit (cursor src :account :rabbit))
+#'user/rabbit
+
+user=> (rabbit :host)
+"127.0.0.1"
+```
+
 ## License
 
 Copyright © 2015 tolitius

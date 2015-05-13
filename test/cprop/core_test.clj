@@ -12,6 +12,12 @@
   (testing "should create a rabbit cursor"
     (is (= ((cursor :source :account :rabbit) :vhost) "/z-broker"))))
 
+(deftest should-compose-cursors
+  (testing "should compose one level"
+    (is (= ((cursor (cursor :source) :account) :rabbit :vhost) "/z-broker")))
+  (testing "should compose nested cursors"
+    (is (= ((cursor (cursor (cursor :source) :account) :rabbit) :vhost) "/z-broker"))))
+
 (comment ;; playground
 
 (conf :answer) ;; 42

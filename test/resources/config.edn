@@ -1,4 +1,4 @@
-{:datamic 
+{:datomic 
     {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}
  :source
     {:account

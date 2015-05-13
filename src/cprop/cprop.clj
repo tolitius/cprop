@@ -31,9 +31,13 @@
 (defn conf [& path]                  ;; e.g. (conf :datomic :url)
   (get-in @props (vec path)))
 
-(defn cursor [& path]
-  (fn [& xs]
-    (apply conf (concat path xs))))
+(defn- create-cursor [path]
+  (with-meta 
+    (fn [& xs]
+      (apply conf (concat path xs)))
+    {:path path}))
 
-;; (defn confa-x [& ps]
-;;   (apply conf (concat [:x :y] ps)))
+(defn cursor [& path]
+  (if-let [cr (meta (first path))]
+    (create-cursor (flatten [(vals cr) (rest path)]))
+    (create-cursor path)))
