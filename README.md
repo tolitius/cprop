@@ -13,13 +13,15 @@ there are several env/config ways, libraries.
 
 ## What does it do?
 
-cprop looks for a `conf` var, that is a path to a config file, edn/reads all the properties from there, and makes it available via a `conf` function.
+cprop looks for a `conf` var that is a path to a config file, or a "path" provided at runtime, edn/reads all the properties from there, and makes it available via a `conf` function.
 
-## How
+## Letting cprop know where to look
 
-###Letting cprop know where to look
+Two ways:
 
-`conf` is just a system property, there are several way it can be set, here are a couple of `dash dee` examples:
+### System property
+
+If no "path" is provided at runtime, cprops will look for a `conf` system property, there are several way it can be set, here are a couple of `dash dee` examples:
 
 ####command line:
 
@@ -33,7 +35,23 @@ java -jar whatsapp.jar -Dconf="../somepath/whatsapp.conf"
 :profiles {:dev {:jvm-opts ["-Dconf=resources/config.edn"]}}
 ```
 
-###Using properties
+In order to read a config based on `conf` system property just load it by:
+
+```clojure
+(:require [cprop :refer [load-config])
+
+(load-config)
+```
+
+### Runtime path
+
+The above example relies on a `conf` system property to specify a path to the configuration file. In case a path is handy at runtime, and/or there is no need to rely on a system property, a path can be provided to `load-config` which will take precedence (`conf`, if set, will be ignored):
+
+```clojure
+(load-config path)
+```
+
+## Using properties
 
 Let's say a config file is:
 
@@ -51,20 +69,6 @@ Let's say a config file is:
  :answer 42}
 ```
 
-Load it with:
-
-```clojure
-(:require [cprop :refer [load-config])
-
-(load-config)
-```
-
-or
-
-```clojure
-(load-config path)
-```
-
 After cprop reads this, it has all of the properties available via a `conf` function:
 
 ```clojure
@@ -76,7 +80,7 @@ After cprop reads this, it has all of the properties available via a `conf` func
 (conf :source :account :rabbit :vhost) ;; "/z-broker"
 ```
 
-###Cursors
+## Cursors
 
 It would be somewhat inconvenient to repeat `:source :account :rabbit :vhost` over and over in different pieces of the code that need rabbit values.
 
@@ -94,7 +98,7 @@ That's where the cursors help a lot:
 
 much better.
 
-####Composable Cursors
+### Composable Cursors
 
 In case you pass a cursor somewhere, you can still build new cursors out of it by simply _composing_ them.
 
