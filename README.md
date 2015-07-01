@@ -17,13 +17,11 @@ cprop looks for a `conf` var that is a path to a config file, or a "path" provid
 
 ## Letting cprop know where to look
 
-Two ways:
-
 ### System property
 
-If no "path" is provided at runtime, cprops will look for a `conf` system property, there are several way it can be set, here are a couple of `dash dee` examples:
+If no "path" is provided at runtime, cprop will look for a `conf` system property, there are several way it can be set, here are a couple of `dash dee` examples:
 
-####command line:
+####command line
 
 ```clojure
 java -jar whatsapp.jar -Dconf="../somepath/whatsapp.conf"
@@ -43,7 +41,7 @@ In order to read a config based on `conf` system property just load it by:
 (load-config)
 ```
 
-### Runtime path
+### Runtime "path"
 
 The above example relies on a `conf` system property to specify a path to the configuration file. In case a path is handy at runtime, and/or there is no need to rely on a system property, a path can be provided to `load-config` which will take precedence (`conf`, if set, will be ignored):
 
