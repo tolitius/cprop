@@ -1,6 +1,8 @@
 (ns cprop.core-test
-  (:require [cprop :refer [conf cursor]]
+  (:require [cprop :refer [conf cursor load-config]]
             [clojure.test :refer :all]))
+
+(load-config)
 
 (deftest should-slurp-and-provide
   (testing "should read config from -Dconfig.var"

@@ -11,12 +11,16 @@
             (.getResource path)) 
         path)))
 
-(defn path-var []  ;; TODO: find app name, if there, use "app-name.conf" instead of "config.edn"
+;; TODO: find app name, if there, use "app-name.conf" instead of "config.edn"
+(defn path-var 
+  "system property cprop will look at to read the path to the app config. 
+   for example 'java -Dconf=...'"
+  []  
   "conf")
 
-(defn- slurp-props []
+(defn- slurp-props [path]
   (let [c-path (path-var)]
-    (if-let [path (System/getProperty c-path)]
+    (if-let [path (or path (System/getProperty c-path))]
       (try
         (edn/read-string 
           (slurp (io/file (resource path))))
@@ -27,10 +31,14 @@
               (str "can't find a \"" c-path "\" env variable that points to a configuration file (usually in a form of -D" c-path "=<path>)")
               "" "")))))
 
-(def props (memoize slurp-props))
+(defonce ^:private props (atom {}))
+
+(defn load-config 
+  ([] (load-config nil))
+  ([path] (reset! props (slurp-props path))))
 
 (defn conf [& path]                  ;; e.g. (conf :datomic :url)
-  (get-in (props) (vec path)))
+  (get-in @props (vec path)))
 
 (defn- create-cursor [path]
   (with-meta 
