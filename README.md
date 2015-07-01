@@ -51,6 +51,20 @@ Let's say a config file is:
  :answer 42}
 ```
 
+Load it with:
+
+```clojure
+(:require [cprop :refer [load-config])
+
+(load-config)
+```
+
+or
+
+```clojure
+(load-config path)
+```
+
 After cprop reads this, it has all of the properties available via a `conf` function:
 
 ```clojure
