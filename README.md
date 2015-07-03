@@ -19,7 +19,7 @@ cprop looks for a `conf` var that is a path to a config file, or a "path" provid
 
 ### System property
 
-If no "path" is provided at runtime, cprop will look for a `conf` system property, there are several way it can be set, here are a couple of `dash dee` examples:
+If no "path" is provided at runtime, cprop will look for a `conf` system property, there are several ways it can be set, here are a couple of `dash dee` examples:
 
 ####command line
 
@@ -41,9 +41,11 @@ In order to read a config based on `conf` system property just load it by:
 (load-config)
 ```
 
+check out [cprop test](https://github.com/tolitius/cprop/blob/master/test/cprop/core_test.clj#L5) to see it in action
+
 ### Runtime "path"
 
-The above example relies on a `conf` system property to specify a path to the configuration file. In case a path is handy at runtime, and/or there is no need to rely on a system property, a path can be provided to `load-config` which will take precedence (`conf`, if set, will be ignored):
+The above example relies on a `conf` system property to specify a path to the configuration file. In case this path is available at runtime, and/or using a system property is not an option, the path can be provided to `load-config` which will take precedence (`conf`, if set, will be ignored):
 
 ```clojure
 (load-config path)
