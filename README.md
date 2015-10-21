@@ -80,6 +80,26 @@ After cprop reads this, it has all of the properties available via a `conf` func
 (conf :source :account :rabbit :vhost) ;; "/z-broker"
 ```
 
+In case the _whole_ config is needed, `conf` is a just function:
+
+```clojure
+user=> (conf)
+
+{:datomic
+ {:url
+  "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
+ :source
+ {:account
+  {:rabbit
+   {:host "127.0.0.1",
+    :port 5672,
+    :vhost "/z-broker",
+    :username "guest",
+    :password "guest"}}},
+ :answer 42}
+```
+
+
 ## Cursors
 
 It would be somewhat inconvenient to repeat `:source :account :rabbit :vhost` over and over in different pieces of the code that need rabbit values.
