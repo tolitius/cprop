@@ -10,6 +10,7 @@ there are several env/config ways, libraries.
 
 * some are based on ENV variables being exported as individual properties: 100 properties? 100 env variables exported.. 
 * some rely on a property file within the classpath: all good, but requires wrestling with uberjar (META-INF and friends)
+* some allow _only_ string values: no data structures, no numbers, no functions, etc.?
 
 ## What does it do?
 
