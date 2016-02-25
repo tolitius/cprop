@@ -3,11 +3,6 @@
             [clojure.edn :as edn]
             [cprop.source :refer [from-file]]))
 
-(defonce ^:private props (atom {}))
-
-(defn conf [& path]                  ;; e.g. (conf :datomic :url)
-  (get-in @props (vec path)))
-
 (defn- env->path [v]
   (as-> v $
         (s/lower-case $)
@@ -48,18 +43,27 @@
   ([config] 
    (let [env (read-system-env)
          sys-props {}]         ;; TODO system properties
-     (reset! props (-> config
-                       (merge* env))))))
+     (-> config
+         (merge* env)))))
 
 ;; cursors
 
-(defn- create-cursor [path]
+(defn- config? [c]
+  (map? c))
+
+(defn- get-in* [conf & path]
+  (get-in conf (vec path)))
+
+(defn- create-cursor [conf path]
   (with-meta 
     (fn [& xs]
-      (apply conf (concat path xs)))
+      (apply (partial get-in* conf)
+             (concat path xs)))
     {:path path}))
 
-(defn cursor [& path]
-  (if-let [cr (meta (first path))]
-    (create-cursor (flatten [(vals cr) (rest path)]))
-    (create-cursor path)))
+(defn cursor [conf cur & path]
+  (if (config? conf)
+    (if-let [cpath (-> cur meta :path)]  ;; is "cur" a cursor?
+      (create-cursor conf (concat cpath path))
+      (create-cursor conf (conj path cur)))
+    (throw (RuntimeException. (str "the first argument should be the config itself, but instead it is: '" conf "'")))))

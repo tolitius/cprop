@@ -1,25 +1,28 @@
 (ns cprop.test.core
-  (:require [cprop.core :refer [conf cursor load-config]]
+  (:require [cprop.core :refer [load-config cursor]]
             [clojure.edn :as edn]
             [clojure.test :refer :all]))
 
-(load-config)
-
 (deftest should-slurp-and-provide
   (testing "should read config from -Dconfig.var"
-    (is (= (conf :answer) 42)))
+    (let [c (load-config)]
+      (is (= (c :answer) 42))))
   (testing "should be able to naviage nested props"
-    (is (= (conf :source :account :rabbit :vhost) "/z-broker"))))
+    (let [c (load-config)]
+      (is (= (get-in c [:source :account :rabbit :vhost]) "/z-broker")))))
 
 (deftest should-create-cursors
   (testing "should create a rabbit cursor"
-    (is (= ((cursor :source :account :rabbit) :vhost) "/z-broker"))))
+    (let [c (load-config)]
+      (is (= ((cursor c :source :account :rabbit) :vhost) "/z-broker")))))
 
 (deftest should-compose-cursors
   (testing "should compose one level"
-    (is (= ((cursor (cursor :source) :account) :rabbit :vhost) "/z-broker")))
+    (let [c (load-config)]
+      (is (= ((cursor c (cursor c :source) :account) :rabbit :vhost) "/z-broker"))))
   (testing "should compose nested cursors"
-    (is (= ((cursor (cursor (cursor :source) :account) :rabbit) :vhost) "/z-broker"))))
+    (let [c (load-config)]
+      (is (= ((cursor c (cursor c (cursor c :source) :account) :rabbit) :vhost) "/z-broker")))))
 
 (defn- read-system-env []
   (->> {"DATOMIC_URL" "\"datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic\""
@@ -52,15 +55,3 @@
                :max-per-route 10}}},
             :other-things [1 2 3 "42"]}
            (#'cprop.core/merge* config (read-system-env))))))
-
-(comment ;; playground
-
-(conf :answer) ;; 42
-(conf :source :account :rabbit :vhost) ;; "/z-broker"
-
-(def rabbit 
-  (cursor :source :account :rabbit))
-
-(rabbit :vhost) ;; "/z-broker"
-
-)

@@ -30,20 +30,21 @@ there are several env/config ways, libraries.
 * some are _solely_ based on ENV variables exported as individual properties: 100 properties? 100 env variables exported.. 
 * some rely on a property file within the classpath: all good, but requires wrestling with uberjar (META-INF and friends)
 * some allow _only_ string values: no data structures, no numbers, no functions, etc.? (I love my data structures and the power of EDN)
+* some keep a global internal config state (`def`/`defonce`), which makes it hard to have app (sub) modules with separate configs
 
 ## What does cprop do?
 
 * loads an [EDN](https://github.com/edn-format/edn) config from a given source (file, db, mqtt, etc.)
 * merges it with ENV variables / system properties
 * returns an (immutable) map
-* while keeping an internal state for convenience tools like `conf` and `cursor`
+* while keeping _no internal state_ => different configs could be used within the same app, i.e. for app sub modules
 
 ## Loading Config
 
 ### Default
 
 ```clojure
-(:require [cprop.core :refer [load-config]])
+(require '[cprop.core :refer [load-config]])
 
 (load-config)
 ```
@@ -70,7 +71,7 @@ java -jar whatsapp.jar -Dconf="../somepath/whatsapp.conf"
 :profiles {:dev {:jvm-opts ["-Dconf=resources/config.edn"]}}
 ```
 
-check out [cprop test](test/cprop/test/core.clj#L6) to see `(load-config)` in action
+check out [cprop test](test/cprop/test/core.clj) to see `(load-config)` in action
 
 ### Loading from "The Source"
 
@@ -78,8 +79,8 @@ check out [cprop test](test/cprop/test/core.clj#L6) to see `(load-config)` in ac
 For example to load a config from a file path:
 
 ```clojure
-(:require [cprop.core :refer [load-config]]
-          [cprop.source :refer [from-file]])
+(require '[cprop.core :refer [load-config]]
+         '[cprop.source :refer [from-file]])
 
 (load-config (from-file path))
 ```
@@ -100,7 +101,7 @@ is equivalent to:
 
 ## Using properties
 
-Let's say a config is:
+cprop just returns a Clojure map, while you can create [cursors](README.md#cursors), working with a config is no different than just working with a map:
 
 ```clojure
 {:datamic 
@@ -116,34 +117,15 @@ Let's say a config is:
  :answer 42}
 ```
 
-After cprop reads this, it has all of the properties available via a `conf` function:
-
 ```clojure
-(:require [cprop.core :refer [conf]])
+(require '[cprop.core :refer [load-config]])
 ```
 ```clojure
+(def conf (load-config))
+
 (conf :answer) ;; 42
 
-(conf :source :account :rabbit :vhost) ;; "/z-broker"
-```
-
-In case the _whole_ config is needed, `conf` is a just function:
-
-```clojure
-user=> (conf)
-
-{:datomic
- {:url
-  "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
- :source
- {:account
-  {:rabbit
-   {:host "127.0.0.1",
-    :port 5672,
-    :vhost "/z-broker",
-    :username "guest",
-    :password "guest"}}},
- :answer 42}
+(get-in conf [:source :account :rabbit :vhost]) ;; "/z-broker"
 ```
 
 ## Merging with ENV variables
@@ -336,16 +318,18 @@ notice that `cprop` also tells you wnenever a property is substituted.
 
 ## Cursors
 
-It would be somewhat inconvenient to repeat `:source :account :rabbit :vhost` over and over in different pieces of the code that need rabbit values.
+It would be somewhat inconvenient to repeat `[:source :account :rabbit :prop]` over and over in different pieces of the code that need rabbit values.
 
 That's where the cursors help a lot:
 
 ```clojure
-(:require [cprop.core :refer [cursor]])
+(require '[cprop.core :refer [load-config cursor]])
 ```
 ```clojure
+(def conf (load-config))
+
 (def rabbit 
-  (cursor :source :account :rabbit))
+  (cursor conf [:source :account :rabbit]))
 
 (rabbit :vhost) ;; "/z-broker"
 ```
@@ -375,7 +359,7 @@ working with the same config as in the example above:
 creating a simple cursor to source:
 
 ```clojure
-user=> (def src (cursor :source))
+user=> (def src (cursor conf :source))
 #'user/src
 user=> (src)
 {:account {:rabbit {:host "127.0.0.1", :port 5672, :vhost "/z-broker", :username "guest", :password "guest"}}}
@@ -387,7 +371,7 @@ user=> (src :account)
 now an `account` cursor can be created out of the `src` one as:
 
 ```clojure
-user=> (def account (cursor src :account))
+user=> (def account (cursor conf src :account))
 #'user/account
 
 user=> (account :rabbit)
@@ -397,7 +381,7 @@ user=> (account :rabbit)
 or any nested cursor for that matter:
 
 ```clojure
-user=> (def rabbit (cursor src :account :rabbit))
+user=> (def rabbit (cursor conf src :account :rabbit))
 #'user/rabbit
 
 user=> (rabbit :host)
