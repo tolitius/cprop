@@ -33,7 +33,7 @@ there are several env/config ways, libraries.
 
 ## What does cprop do?
 
-* loads config from a given source (file, db, mqtt, etc.)
+* loads an [EDN](https://github.com/edn-format/edn) config from a given source (file, db, mqtt, etc.)
 * merges it with ENV variables / system properties
 * returns an (immutable) map
 * while keeping an internal state for convenience tools like `conf` and `cursor`
@@ -50,7 +50,7 @@ there are several env/config ways, libraries.
 
 by default if no source is provided, `cprop` would look for a `conf` system property that would point to a config file path (i.e. `the source` in this case would implicitly be a file).
 
-There are several ways `conf` can be set:
+There are several ways the `conf` property can be set:
 
 ####command line
 
@@ -70,7 +70,7 @@ java -jar whatsapp.jar -Dconf="../somepath/whatsapp.conf"
 :profiles {:dev {:jvm-opts ["-Dconf=resources/config.edn"]}}
 ```
 
-check out [cprop test](https://github.com/tolitius/cprop/blob/master/test/cprop/test/core.clj#L5) to see `(load-config)` in action
+check out [cprop test](test/cprop/test/core.clj#L6) to see `(load-config)` in action
 
 ### Loading from "The Source"
 
@@ -100,7 +100,7 @@ is equivalent to:
 
 ## Using properties
 
-Let's say a config file is:
+Let's say a config is:
 
 ```clojure
 {:datamic 
