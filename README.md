@@ -5,12 +5,9 @@ where all configuration properties converge
 ![](https://clojars.org/cprop/latest-version.svg)
 
 - [Why](#why)
-- [What does it do?](#what-does-it-do)
+- [What does cprop do?](#what-does-cprop-do)
 - [Loading Config](#loading-config)
   - [Default](#default)
-    - [command line](#command-line)
-    - [boot](#boot)
-    - [lein](#lein)
   - [Loading from "The Source"](#loading-from-the-source)
 - [Using properties](#using-properties)
 - [Merging with ENV variables](#merging-with-env-variables)
@@ -34,7 +31,7 @@ there are several env/config ways, libraries.
 * some rely on a property file within the classpath: all good, but requires wrestling with uberjar (META-INF and friends)
 * some allow _only_ string values: no data structures, no numbers, no functions, etc.? (I love my data structures and the power of EDN)
 
-## What does it do?
+## What does cprop do?
 
 * loads config from a given source (file, db, mqtt, etc.)
 * merges it with ENV variables / system properties
@@ -51,10 +48,9 @@ there are several env/config ways, libraries.
 (load-config)
 ```
 
-by default if no source is provided, `cprop` would look for a `conf` system property for a path to a file to load
-(i.e. source in this case would implicitly be a file).
+by default if no source is provided, `cprop` would look for a `conf` system property that would point to a config file path (i.e. `the source` in this case would implicitly be a file).
 
-There are several ways `conf` can be set, here are a couple of `dash dee` examples:
+There are several ways `conf` can be set:
 
 ####command line
 
@@ -78,8 +74,8 @@ check out [cprop test](https://github.com/tolitius/cprop/blob/master/test/cprop/
 
 ### Loading from "The Source"
 
-`load-config` optionaly takes a function that would load the raw (i.e. an unmerged config).
-For example to load config from a file path:
+`load-config` optionaly takes a function that would load the raw (i.e. an unmerged) config.
+For example to load a config from a file path:
 
 ```clojure
 (:require [cprop.core :refer [load-config]]
