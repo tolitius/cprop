@@ -29,8 +29,8 @@ there are several env/config ways, libraries.
 
 * some are _solely_ based on ENV variables exported as individual properties: 100 properties? 100 env variables exported.. 
 * some rely on a property file within the classpath: all good, but requires wrestling with uberjar (META-INF and friends)
-* some allow _only_ string values: no data structures, no numbers, no functions, etc.? (I love my data structures and the power of EDN)
-* some keep a global internal config state (`def`/`defonce`), which makes it hard to have app (sub) modules with separate configs
+* some allow _only_ string values: no data structures, no numbers, etc.? (I love my data structures and the power of EDN)
+* some keep a global internal config state, which makes it hard to have app (sub) modules with separate configs
 
 ## What does cprop do?
 
@@ -101,7 +101,7 @@ is equivalent to:
 
 ## Using properties
 
-cprop just returns a Clojure map, while you can create [cursors](README.md#cursors), working with a config is no different than just working with a map:
+`(load-config)` function returns a Clojure map, while you can create [cursors](README.md#cursors), working with a config is no different than just working with a map:
 
 ```clojure
 {:datamic 
@@ -329,7 +329,7 @@ That's where the cursors help a lot:
 (def conf (load-config))
 
 (def rabbit 
-  (cursor conf [:source :account :rabbit]))
+  (cursor conf :source :account :rabbit))
 
 (rabbit :vhost) ;; "/z-broker"
 ```
