@@ -6,11 +6,12 @@ where all configuration properties converge
 
 - [Why](#why)
 - [What does it do?](#what-does-it-do)
-- [Letting cprop know where to look](#letting-cprop-know-where-to-look)
-  - [System property](#system-property)
+- [Loading Config](#loading-config)
+  - [Default](#default)
     - [command line](#command-line)
+    - [boot](#boot)
     - [lein](#lein)
-  - [Runtime "path"](#runtime-path)
+  - [Loading from "The Source"](#loading-from-the-source)
 - [Using properties](#using-properties)
 - [Merging with ENV variables](#merging-with-env-variables)
   - [Speaking ENV variables](#speaking-env-variables)
@@ -35,18 +36,36 @@ there are several env/config ways, libraries.
 
 ## What does it do?
 
-cprop looks for a `conf` var that is a path to a config file, or a "path" provided at runtime, edn/reads all the properties from there, and makes it available via a `conf` function.
+* loads config from a given source (file, db, mqtt, etc.)
+* merges it with ENV variables / system properties
+* returns an (immutable) map
+* while keeping an internal state for convenience tools like `conf` and `cursor`
 
-## Letting cprop know where to look
+## Loading Config
 
-### System property
+### Default
 
-If no "path" is provided at runtime, cprop will look for a `conf` system property, there are several ways it can be set, here are a couple of `dash dee` examples:
+```clojure
+(:require [cprop.core :refer [load-config]])
+
+(load-config)
+```
+
+by default if no source is provided, `cprop` would look for a `conf` system property for a path to a file to load
+(i.e. source in this case would implicitly be a file).
+
+There are several ways `conf` can be set, here are a couple of `dash dee` examples:
 
 ####command line
 
 ```clojure
 java -jar whatsapp.jar -Dconf="../somepath/whatsapp.conf"
+```
+
+####boot
+
+```clojure
+(System/setProperty "conf" "resources/config.edn")
 ```
 
 ####lein
@@ -55,22 +74,32 @@ java -jar whatsapp.jar -Dconf="../somepath/whatsapp.conf"
 :profiles {:dev {:jvm-opts ["-Dconf=resources/config.edn"]}}
 ```
 
-In order to read a config based on `conf` system property just load it by:
+check out [cprop test](https://github.com/tolitius/cprop/blob/master/test/cprop/test/core.clj#L5) to see `(load-config)` in action
+
+### Loading from "The Source"
+
+`load-config` optionaly takes a function that would load the raw (i.e. an unmerged config).
+For example to load config from a file path:
 
 ```clojure
-(:require [cprop :refer [load-config])
+(:require [cprop.core :refer [load-config]]
+          [cprop.source :refer [from-file]])
 
-(load-config)
+(load-config (from-file path))
 ```
 
-check out [cprop test](https://github.com/tolitius/cprop/blob/master/test/cprop/core_test.clj#L5) to see it in action
+this would load a raw config from a file and merge it with ENV specific variable values.
 
-### Runtime "path"
-
-The above example relies on a `conf` system property to specify a path to the configuration file. In case this path is available at runtime, and/or using a system property is not an option, the path can be provided to `load-config` which will take precedence (`conf`, if set, will be ignored):
+In case a `path` is not provided `cprop` would use the defaults discussed above. In other words:
 
 ```clojure
-(load-config path)
+(load-config (from-file))
+```
+
+is equivalent to:
+
+```clojure
+(load-config)
 ```
 
 ## Using properties
@@ -94,7 +123,7 @@ Let's say a config file is:
 After cprop reads this, it has all of the properties available via a `conf` function:
 
 ```clojure
-(:require [cprop :refer [conf])
+(:require [cprop.core :refer [conf]])
 ```
 ```clojure
 (conf :answer) ;; 42
@@ -316,7 +345,7 @@ It would be somewhat inconvenient to repeat `:source :account :rabbit :vhost` ov
 That's where the cursors help a lot:
 
 ```clojure
-(:require [cprop :refer [cursor])
+(:require [cprop.core :refer [cursor]])
 ```
 ```clojure
 (def rabbit 

@@ -1,5 +1,5 @@
-(ns cprop.core-test
-  (:require [cprop :refer [conf cursor load-config]]
+(ns cprop.test.core
+  (:require [cprop.core :refer [conf cursor load-config]]
             [clojure.edn :as edn]
             [clojure.test :refer :all]))
 
@@ -29,7 +29,7 @@
         "IO_HTTP_POOL_CONN__TIMEOUT" "60000"
         "IO_HTTP_POOL_MAX__PER__ROUTE" "10"
         "OTHER__THINGS" "[1 2 3 \"42\"]"}
-       (map (fn [[k v]] [(#'cprop/env->path k) v]))
+       (map (fn [[k v]] [(#'cprop.core/env->path k) v]))
        (into {})))
 
 (deftest should-merge-with-env
@@ -51,7 +51,7 @@
                :max-total 200,
                :max-per-route 10}}},
             :other-things [1 2 3 "42"]}
-           (#'cprop/merge* config (read-system-env))))))
+           (#'cprop.core/merge* config (read-system-env))))))
 
 (comment ;; playground
 
