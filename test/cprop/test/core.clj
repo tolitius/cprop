@@ -14,12 +14,14 @@
 (deftest should-create-cursors
   (testing "should create a rabbit cursor"
     (let [c (load-config)]
-      (is (= ((cursor c :source :account :rabbit) :vhost) "/z-broker")))))
+      (is (= ((cursor c :source :account :rabbit) :vhost) "/z-broker"))
+      (is (= ((cursor c)) c)))))
 
 (deftest should-compose-cursors
   (testing "should compose one level"
     (let [c (load-config)]
-      (is (= ((cursor c (cursor c :source) :account) :rabbit :vhost) "/z-broker"))))
+      (is (= ((cursor c (cursor c :source) :account) :rabbit :vhost) "/z-broker"))
+      (is (= ((cursor c (cursor c) :source :account) :rabbit :vhost) "/z-broker"))))
   (testing "should compose nested cursors"
     (let [c (load-config)]
       (is (= ((cursor c (cursor c (cursor c :source) :account) :rabbit) :vhost) "/z-broker")))))
