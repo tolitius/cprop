@@ -1,15 +1,22 @@
-(ns cprop.tools)
+(ns cprop.tools
+  (:require [clojure.string :as s]))
+
+(defn key->prop [k]
+  (-> k 
+      name 
+      (s/replace "-" "_")))
 
 (defn link [from [to value]]
-  [(str from "." (name to)) value])
+  (let [to (key->prop to)]
+    [(str from "." to) value]))
 
 (defn map->props [m]
   (reduce-kv (fn [path k v] 
                (if (map? v)
-                 (concat (map (partial link (name k))
+                 (concat (map (partial link (key->prop k))
                               (map->props v))
                          path)
-               (conj path [(name k) v])))
+               (conj path [(key->prop k) v])))
   [] m))
 
 (defn map->props-file [{:keys [props-file] :as m}]
