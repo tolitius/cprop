@@ -282,7 +282,7 @@ export IO_HTTP_POOL_MAX__PER__ROUTE=10
 export OTHER__THINGS='[1 2 3 "42"]'
 ```
 
-Now whenever the config is loaded with `(load-config)` or `(load-config path)` cprop will find these ENV variables and will merge them with the original config file in to a one complete configuration:
+Now whenever the config is loaded with `load-config` cprop will find these ENV variables and will merge them with the original config file in to a one complete configuration:
 
 ```clojure
 user=> (load-config)
