@@ -59,11 +59,11 @@
     (fn [& xs]
       (apply (partial get-in* conf)
              (concat path xs)))
-    {:path path}))
+    {:path (or path [])}))
 
-(defn cursor [conf cur & path]
+(defn cursor [conf & path]
   (if (config? conf)
-    (if-let [cpath (-> cur meta :path)]  ;; is "cur" a cursor?
-      (create-cursor conf (concat cpath path))
-      (create-cursor conf (conj path cur)))
+    (if-let [cpath (-> path first meta :path)]        ;; is "(first path)" a cursor?
+      (create-cursor conf (concat cpath (rest path)))
+      (create-cursor conf path))
     (throw (RuntimeException. (str "the first argument should be the config itself, but instead it is: '" conf "'")))))
