@@ -1,7 +1,7 @@
 (ns cprop.core
   (:require [clojure.string :as s]
             [clojure.edn :as edn]
-            [cprop.source :refer [from-file]]))
+            [cprop.source :refer [from-resource]]))
 
 (defn- env->path [v]
   (as-> v $
@@ -16,7 +16,7 @@
        (into {})))
 
 (defn- typinize [k v]
-  (try 
+  (try
     (edn/read-string v)
     (catch Throwable problem
       (println "could not read value:" v "for key:" k "due to:" (.getMessage problem) ". casting it to string")
@@ -37,10 +37,10 @@
 
 ;; entry point
 
-(defn load-config 
-  ([] 
-   (load-config (from-file)))
-  ([config] 
+(defn load-config
+  ([]
+   (load-config (from-resource)))
+  ([config]
    (let [env (read-system-env)
          sys-props {}]         ;; TODO system properties
      (-> config
@@ -55,7 +55,7 @@
   (get-in conf (vec path)))
 
 (defn- create-cursor [conf path]
-  (with-meta 
+  (with-meta
     (fn [& xs]
       (apply (partial get-in* conf)
              (concat path xs)))
