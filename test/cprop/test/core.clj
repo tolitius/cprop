@@ -1,5 +1,6 @@
 (ns cprop.test.core
   (:require [cprop.core :refer [load-config cursor]]
+            [cprop.source :refer [from-stream from-file from-resource]]
             [clojure.edn :as edn]
             [clojure.test :refer :all]))
 
@@ -37,8 +38,14 @@
        (map (fn [[k v]] [(#'cprop.core/env->path k) v]))
        (into {})))
 
+(deftest from-source
+  (is (map? (from-stream "test/resources/config.edn")))
+  (is (map? (from-file "test/resources/config.edn")))
+  (is (map? (from-resource "config.edn"))))
+
+
 (deftest should-merge-with-env
-  (let [config (edn/read-string 
+  (let [config (edn/read-string
                  (slurp "test/resources/fill-me-in.edn"))]
     (is (= {:datomic {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
             :aws {:access-key "AKIAIOSFODNN7EXAMPLE",
