@@ -35,13 +35,11 @@ there are several env/config ways, libraries.
 ## What does cprop do?
 
 * loads an [EDN](https://github.com/edn-format/edn) config from a given source (file, db, mqtt, etc.)
-* merges it with ENV variables / system properties
+* merges it with ENV variables / system properties + optional merge sources / configs
 * returns an (immutable) map
 * while keeping _no internal state_ => different configs could be used within the same app, i.e. for app sub modules
 
 ## Loading Config
-
-### Default
 
 ```clojure
 (require '[cprop.core :refer [load-config]])
@@ -49,7 +47,16 @@ there are several env/config ways, libraries.
 (load-config)
 ```
 
-by default if no source is provided, `cprop` would look for a `conf` system property that would point to a config file path (i.e. `the source` in this case would implicitly be a file).
+done.
+
+### Default
+
+By default `cprop` would look in two places for configuration files:
+
+* classpath: for the `config.edn` resource
+* file system: for a path identified by the `conf` system property
+
+If both are there, they will be merged with file system overriding matching classpath properties.
 
 There are several ways the `conf` property can be set:
 
@@ -75,29 +82,24 @@ check out [cprop test](test/cprop/test/core.clj) to see `(load-config)` in actio
 
 ### Loading from "The Source"
 
-`load-config` optionaly takes a function that would load the raw (i.e. an unmerged) config.
-For example to load a config from a file path:
+`load-config` optionaly takes `:resource` and `:file` paths that would override the above defaults.
 
 ```clojure
-(require '[cprop.core :refer [load-config]]
-         '[cprop.source :refer [from-file]])
-
-(load-config (from-file path))
+(load-config :resource "path/within/classpath/to-some.edn")
 ```
-
-this would load a raw config from a file and merge it with ENV specific variable values.
-
-In case a `path` is not provided `cprop` would use the defaults discussed above. In other words:
 
 ```clojure
-(load-config (from-file))
+(load-config :file "/path/to/another.edn")
 ```
 
-is equivalent to:
+they can be combined:
 
 ```clojure
-(load-config)
+(load-config :resource "path/within/classpath/to-some.edn"
+             :file "/path/to/another.edn")
 ```
+
+as in the case with defaults, file system properties would override matching classpath resource ones.
 
 ## Using properties
 
@@ -127,6 +129,60 @@ is equivalent to:
 
 (get-in conf [:source :account :rabbit :vhost]) ;; "/z-broker"
 ```
+
+## Merging Configurations
+
+By default `cprop` will merge all configurations it can find in the following order:
+
+* classpath resource config
+* file on a file system (pointed by a `conf` system property or by `(load-config :file <path>)`)
+* custom configurations, maps from various sources, etc.
+* ENV variables
+
+Classpath (`resource`) and file system (`conf` / `:file`) are going to always be merged by default.
+
+Optionally `load-config` takes a `:merge` sequence of maps that will be merged after the defaults in the specified sequence:
+
+```clojure
+(load-config :merge [{:datomic {:url "foo.bar"}} 
+                     {:some {:other {:property :to-merge}}}])
+```
+
+this will merge default configurations from a classpath and a file system with the two maps in `:merge` that would overwrite the values that match the existing ones in the configuraion.
+
+Since `:merge` just takes maps it is quite felxible:
+
+```clojure
+(require '[cprop.source :refer [from-file from-resource]])
+```
+
+```clojure
+(load-config :merge [{:datomic {:url "foo.bar"}} 
+                     (from-file "/path/to/another.edn")
+                     (from-resource "path/within/classpath/to.edn")
+                     {:datomic {:url "this.will.win"}} ])
+```
+
+in this case datomic url will be overwritten with `"this.will.win"`, since this is what the last map has. And notice the "sources", they would just return maps as well.
+
+And of course `:merge` well composes with `:resource` and `:file`:
+
+```clojure
+(load-config :resource "path/within/classpath/to.edn"
+             :file "/path/to/some.edn"
+             :merge [{:datomic {:url "foo.bar"}} 
+                     (from-file "/path/to/another.edn")
+                     (from-resource "path/within/classpath/to-another.edn")
+                     (parse-runtime-args ...)])
+```
+
+It can get as creative as needed, but.. _this should cover most cases_:
+
+```clojure
+(load-config)
+```
+
+The last merge that occurs is with ENV variables that deserves its own [detailed section](README.md#merging-with-env-variables) of the docs.
 
 ## Merging with ENV variables
 
