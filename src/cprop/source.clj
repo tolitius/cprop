@@ -37,7 +37,7 @@
    (from-file (System/getProperty (path-var))))
   ([path]
    (let [file (io/file path)]
-     (if (.exists file)
+     (if (and file (.exists file))
        (try
          (read-config file)
          (catch Throwable t
