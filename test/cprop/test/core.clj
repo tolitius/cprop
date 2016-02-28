@@ -65,8 +65,8 @@
                    [:datomic :url] :none))))
 
 (deftest should-merge-with-env
-  (let [config (load-config :file "test/resources/fill-me-in.edn" 
-                            :resource "fill-me-in.edn")]
+  (let [config (edn/read-string
+                 (slurp "test/resources/fill-me-in.edn"))]
     (is (= {:datomic {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
             :aws {:access-key "AKIAIOSFODNN7EXAMPLE",
                   :secret-key "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
