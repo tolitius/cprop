@@ -1,4 +1,4 @@
-(defproject cprop "0.1.5-SNAPSHOT"
+(defproject cprop "0.1.5"
   :description "where all configuration properties converge"
   :url "https://github.com/tolitius/cprop"
   :license {:name "Eclipse Public License"
