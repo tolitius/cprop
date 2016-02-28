@@ -41,12 +41,32 @@
 (deftest from-source
   (is (map? (from-stream "test/resources/config.edn")))
   (is (map? (from-file "test/resources/config.edn")))
-  (is (map? (from-resource "config.edn"))))
+  (is (map? (from-resource "config.edn")))
+  (is (map? (load-config :file "test/resources/config.edn")))
+  (is (map? (load-config :resource "config.edn")))
+  (is (map? (load-config :resource "config.edn"
+                         :file "test/resources/fill-me-in.edn"))))
 
+(deftest with-merge
+  (is (= (load-config :resource "config.edn" 
+                      :merge [{:source {:account {:rabbit {:port 4242}}}}])
+         (assoc-in (load-config) [:source :account :rabbit :port] 4242)))
+  (is (= (load-config :file "test/resources/config.edn" 
+                      :merge [{:source {:account {:rabbit {:port 4242}}}}
+                              {:datomic {:url :foo}}])
+         (assoc-in (assoc-in (load-config) [:source :account :rabbit :port] 4242)
+                   [:datomic :url] :foo)))
+  (is (= (load-config :resource "config.edn"
+                      :file "test/resources/config.edn"
+                      :merge [{:source {:account {:rabbit {:port 4242}}}}
+                              {:datomic {:url :foo}}
+                              {:datomic {:url :none}}])
+         (assoc-in (assoc-in (load-config) [:source :account :rabbit :port] 4242)
+                   [:datomic :url] :none))))
 
 (deftest should-merge-with-env
-  (let [config (edn/read-string
-                 (slurp "test/resources/fill-me-in.edn"))]
+  (let [config (load-config :file "test/resources/fill-me-in.edn" 
+                            :resource "fill-me-in.edn")]
     (is (= {:datomic {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
             :aws {:access-key "AKIAIOSFODNN7EXAMPLE",
                   :secret-key "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
