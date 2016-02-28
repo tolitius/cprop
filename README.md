@@ -10,6 +10,7 @@ where all configuration properties converge
   - [Default](#default)
   - [Loading from "The Source"](#loading-from-the-source)
 - [Using properties](#using-properties)
+- [Merging Configurations](#merging-configurations)
 - [Merging with ENV variables](#merging-with-env-variables)
   - [Speaking ENV variables](#speaking-env-variables)
     - [Structure](#structure)
@@ -22,6 +23,11 @@ where all configuration properties converge
   - [Merging ENV example](#merging-env-example)
 - [Cursors](#cursors)
   - [Composable Cursors](#composable-cursors)
+- [Tips](#tips)
+  - [Setting the "conf" system property](#setting-the-conf-system-property)
+    - [command line](#command-line)
+    - [boot](#boot)
+    - [lein](#lein)
 
 ## Why
 
@@ -34,8 +40,8 @@ there are several env/config ways, libraries.
 
 ## What does cprop do?
 
-* loads an [EDN](https://github.com/edn-format/edn) config from a given source (file, db, mqtt, etc.)
-* merges it with ENV variables / system properties + optional merge sources / configs
+* loads an [EDN](https://github.com/edn-format/edn) config from a classpath and/or file system 
+* merges it with ENV variables + optional merge sources (file, db, mqtt, http, etc.)
 * returns an (immutable) map
 * while keeping _no internal state_ => different configs could be used within the same app, i.e. for app sub modules
 
@@ -56,29 +62,9 @@ By default `cprop` would look in two places for configuration files:
 * classpath: for the `config.edn` resource
 * file system: for a path identified by the `conf` system property
 
-If both are there, they will be merged with file system overriding matching classpath properties.
+If both are there, they will be merged with file system overriding matching classpath properties, and the result will be [merged with ENV variables](README.md#merging-with-env-variables).
 
-There are several ways the `conf` property can be set:
-
-####command line
-
-```clojure
-java -jar whatsapp.jar -Dconf="../somepath/whatsapp.conf"
-```
-
-####boot
-
-```clojure
-(System/setProperty "conf" "resources/config.edn")
-```
-
-####lein
-
-```clojure
-:profiles {:dev {:jvm-opts ["-Dconf=resources/config.edn"]}}
-```
-
-check out [cprop test](test/cprop/test/core.clj) to see `(load-config)` in action
+check out [cprop test](test/cprop/test/core.clj) to see `(load-config)` in action.
 
 ### Loading from "The Source"
 
@@ -134,23 +120,23 @@ as in the case with defaults, file system properties would override matching cla
 
 By default `cprop` will merge all configurations it can find in the following order:
 
-* classpath resource config
-* file on a file system (pointed by a `conf` system property or by `(load-config :file <path>)`)
-* custom configurations, maps from various sources, etc.
-* ENV variables
+1. classpath resource config
+2. file on a file system (pointed by a `conf` system property or by `(load-config :file <path>)`)
+3. custom configurations, maps from various sources, etc.
+4. ENV variables
 
-Classpath (`resource`) and file system (`conf` / `:file`) are going to always be merged by default.
+`#1` and `#2` are going to always be merged by default.
 
-Optionally `load-config` takes a `:merge` sequence of maps that will be merged after the defaults in the specified sequence:
+For `#3` `(load-config)` optionally takes a sequence of maps (via `:merge`) that will be merged _after_ the defaults and in the specified sequence:
 
 ```clojure
 (load-config :merge [{:datomic {:url "foo.bar"}} 
                      {:some {:other {:property :to-merge}}}])
 ```
 
-this will merge default configurations from a classpath and a file system with the two maps in `:merge` that would overwrite the values that match the existing ones in the configuraion.
+this will merge default configurations from a classpath and a file system with the two maps in `:merge` that would override the values that match the existing ones in the configuraion.
 
-Since `:merge` just takes maps it is quite felxible:
+Since `:merge` just takes maps it is quite flexible:
 
 ```clojure
 (require '[cprop.source :refer [from-file from-resource]])
@@ -163,7 +149,8 @@ Since `:merge` just takes maps it is quite felxible:
                      {:datomic {:url "this.will.win"}} ])
 ```
 
-in this case datomic url will be overwritten with `"this.will.win"`, since this is what the last map has. And notice the "sources", they would just return maps as well.
+in this case the `datomic url` will be overwritten with `"this.will.win"`, since this is the value the last map has.
+And notice the "sources", they would just return maps as well.
 
 And of course `:merge` well composes with `:resource` and `:file`:
 
@@ -442,6 +429,30 @@ user=> (def rabbit (cursor conf src :account :rabbit))
 
 user=> (rabbit :host)
 "127.0.0.1"
+```
+
+## Tips
+
+### Setting the "conf" system property
+
+There are several ways the `conf` property can be set:
+
+####command line
+
+```clojure
+java -jar whatsapp.jar -Dconf="../somepath/whatsapp.conf"
+```
+
+####boot
+
+```clojure
+(System/setProperty "conf" "resources/config.edn")
+```
+
+####lein
+
+```clojure
+:profiles {:dev {:jvm-opts ["-Dconf=resources/config.edn"]}}
 ```
 
 ## License
