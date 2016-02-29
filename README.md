@@ -16,17 +16,12 @@ where all configuration properties converge
   - [System properties cprop syntax](#system-properties-cprop-syntax)
 - [Merging with ENV variables](#merging-with-env-variables)
   - [Speaking ENV variables](#speaking-env-variables)
-    - [Structure and keywords](#structure-and-keywords)
-    - [Types](#types)
   - [Merging ENV example](#merging-env-example)
 - [Cursors](#cursors)
   - [Composable Cursors](#composable-cursors)
 - [Tips](#tips)
   - [Setting the "conf" system property](#setting-the-conf-system-property)
-    - [command line](#command-line)
-    - [boot](#boot)
-    - [lein](#lein)
-- [License](#license)
+  - [See what properties were substituted](#see-what-properties-were-substituted)
 
 ## Why
 
@@ -485,6 +480,33 @@ java -jar whatsapp.jar -Dconf="../somepath/whatsapp.conf"
 ```clojure
 :profiles {:dev {:jvm-opts ["-Dconf=resources/config.edn"]}}
 ```
+
+### See what properties were substituted
+
+In order to see which properties were substituted by the cprop merge, export a DEBUG environment variable to `y` / `Y`:
+
+```bash
+export DEBUG=y
+```
+
+if this variable is exported, cprop won't keep substitutions a secret:
+
+```clojure
+user=> (load-config)
+substituting [:aws :region] with a ENV/system.property specific value
+substituting [:aws :secret-key] with a ENV/system.property specific value
+substituting [:io :http :pool :conn-timeout] with a ENV/system.property specific value
+substituting [:io :http :pool :max-per-route] with a ENV/system.property specific value
+substituting [:datomic :url] with a ENV/system.property specific value
+substituting [:aws :access-key] with a ENV/system.property specific value
+substituting [:other-things] with a ENV/system.property specific value
+;; ...
+```
+
+#### Why not default?
+
+The reason this is not on by default is merging ALL env and/or system properties with configs
+which is quite noisy and not very useful (i.e. can be hundrends of entries..).
 
 ## License
 

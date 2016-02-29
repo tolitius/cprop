@@ -67,7 +67,8 @@
 (defn- substitute [m [k-path v]]
   (if (and (seq k-path) (get-in m k-path))
     (do
-      (println "substituting" (vec k-path) "with an ENV/System property specific value")
+      (when (= (s/lower-case (System/getenv "DEBUG")) "y")
+        (println "substituting" (vec k-path) "with an ENV/System property specific value"))
       (assoc-in m k-path v))
     m))
 
