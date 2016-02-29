@@ -11,15 +11,13 @@ where all configuration properties converge
   - [Loading from "The Source"](#loading-from-the-source)
 - [Using properties](#using-properties)
 - [Merging Configurations](#merging-configurations)
+  - [Merging will ALL System properties and/or ENV variables](#merging-will-all-system-properties-andor-env-variables)
+- [Merging with system properties](#merging-with-system-properties)
+  - [System properties cprop syntax](#system-properties-cprop-syntax)
 - [Merging with ENV variables](#merging-with-env-variables)
   - [Speaking ENV variables](#speaking-env-variables)
-    - [Structure](#structure)
+    - [Structure and keywords](#structure-and-keywords)
     - [Types](#types)
-    - [Keywords](#keywords)
-  - [Taming ENV variables](#taming-env-variables)
-    - [Structure](#structure-1)
-    - [Types](#types-1)
-    - [Keywords](#keywords-1)
   - [Merging ENV example](#merging-env-example)
 - [Cursors](#cursors)
   - [Composable Cursors](#composable-cursors)
@@ -28,6 +26,7 @@ where all configuration properties converge
     - [command line](#command-line)
     - [boot](#boot)
     - [lein](#lein)
+- [License](#license)
 
 ## Why
 
@@ -36,12 +35,13 @@ there are several env/config ways, libraries.
 * some are _solely_ based on ENV variables exported as individual properties: 100 properties? 100 env variables exported.. 
 * some rely on a property file within the classpath: all good, but requires wrestling with uberjar (META-INF and friends)
 * some allow _only_ string values: no data structures, no numbers, etc.? (I love my data structures and the power of EDN)
+* some allow no structure / hierarchy, just one (top) level pile of properties
 * some keep a global internal config state, which makes it hard to have app (sub) modules with separate configs
 
 ## What does cprop do?
 
 * loads an [EDN](https://github.com/edn-format/edn) config from a classpath and/or file system 
-* merges it with ENV variables + optional merge sources (file, db, mqtt, http, etc.)
+* merges it with system proppertis and ENV variables + optional merge sources (file, db, mqtt, http, etc.)
 * returns an (immutable) map
 * while keeping _no internal state_ => different configs could be used within the same app, i.e. for app sub modules
 
@@ -62,13 +62,16 @@ By default `cprop` would look in two places for configuration files:
 * classpath: for the `config.edn` resource
 * file system: for a path identified by the `conf` system property
 
-If both are there, they will be merged with file system overriding matching classpath properties, and the result will be [merged with ENV variables](README.md#merging-with-env-variables).
+If both are there, they will be merged with file system overriding matching classpath properties,
+and the result will be [merged with System properties](README.md#merging-with-system-properties)
+and then [merged with ENV variables](README.md#merging-with-env-variables)
+for all the _matching_ properties.
 
 check out [cprop test](test/cprop/test/core.clj) to see `(load-config)` in action.
 
 ### Loading from "The Source"
 
-`load-config` optionaly takes `:resource` and `:file` paths that would override the above defaults.
+`(load-config)` optionaly takes `:resource` and `:file` paths that would override the above defaults.
 
 ```clojure
 (load-config :resource "path/within/classpath/to-some.edn")
@@ -123,7 +126,8 @@ By default `cprop` will merge all configurations it can find in the following or
 1. classpath resource config
 2. file on a file system (pointed by a `conf` system property or by `(load-config :file <path>)`)
 3. custom configurations, maps from various sources, etc.
-4. ENV variables
+4. System properties
+5. ENV variables
 
 `#1` and `#2` are going to always be merged by default.
 
@@ -139,7 +143,8 @@ this will merge default configurations from a classpath and a file system with t
 Since `:merge` just takes maps it is quite flexible:
 
 ```clojure
-(require '[cprop.source :refer [from-file from-resource]])
+(require '[cprop.source :refer [from-file
+                                from-resource]])
 ```
 
 ```clojure
@@ -163,13 +168,93 @@ And of course `:merge` well composes with `:resource` and `:file`:
                      (parse-runtime-args ...)])
 ```
 
+### Merging will ALL System properties and/or ENV variables
+
+By default only _matching_ configuration properties will be overriden with the ones from system or ENV.
+In case all the system properties or ENV variables are needed (i.e. to add / override something that does not exist in the config),
+it can be done with `:merge` as well, since it does a "deep merge" (merges all the nested structures as well):
+
+```clojure
+(require '[cprop.source :refer [from-system-props
+                                from-env]])
+```
+
+`(from-system-props)` returns a map of ALL system properties that is ready to be merged with the config
+`(from-env)` returns a map of ALL ENV variables that is ready to be merged with the config
+
+one or both can be used:
+
+```clojure
+(load-config :merge [(from-system-props)])
+```
+
+```clojure
+(load-config :merge [(from-system-props)
+                     (from-env)])
+```
+
+Everything of course composes together if needed:
+
+```clojure
+(load-config :resource "path/within/classpath/to.edn"
+             :file "/path/to/some.edn"
+             :merge [{:datomic {:url "foo.bar"}} 
+                     (from-file "/path/to/another.edn")
+                     (from-resource "path/within/classpath/to-another.edn")
+                     (parse-runtime-args ...)
+                     (from-system-props)
+                     (from-env)])
+```
+
 It can get as creative as needed, but.. _this should cover most cases_:
 
 ```clojure
 (load-config)
 ```
 
-The last merge that occurs is with ENV variables that deserves its own [detailed section](README.md#merging-with-env-variables) of the docs.
+## Merging with system properties
+
+By default cprop will merge all configurations with system properties that match the ones that are there in configs (i.e. intersection).
+In case ALL system properties need to be merged (i.e. union), this can be done with `:merge`:
+
+
+```clojure
+(require '[cprop.source :refer [from-system-props]])
+
+(load-config :merge [(from-system-props)])
+```
+
+`(from-system-props)` returns a map of ALL system properties that is ready to be merged with the config.
+
+### System properties cprop syntax
+
+System properties are usually separated by `.` (periods). cprop will convert these periods to `-` (dashes).
+
+In order to override a nested property use `_` (underscode).
+
+Here is an example. Let say we have a config:
+
+```clojure
+{:http
+ {:pool
+  {:socket-timeout 600000,
+   :conn-timeout 60000,
+   :conn-req-timeout 600000,
+   :max-total 200,
+   :max-per-route 10}}}
+```
+
+a system property `http_pool_socket.timeout` would point to a `{:http {:pool {:socket-timeout value}}}`. So to change a value it can be set as:
+
+```bash
+-Dhttp_pool_socket.timeout=4242
+```
+
+or
+
+```java
+System.setProperty("http_pool_socket.timeout" "4242");
+```
 
 ## Merging with ENV variables
 
@@ -183,110 +268,53 @@ While not _everything_ needs to live in environment variables + config files are
 
 > A litmus test for whether an app has all config correctly factored out of the code is whether the codebase could be made open source at any moment, without compromising any credentials.
 
-Hence it makes a lot of sense for `cprop` to merge the config file with ENV variables when `(load-config)` or `(load-config path)` is called.
+Hence it makes a lot of sense for `cprop` to merge the config file with ENV variables when `(load-config)` is called.
 
 ### Speaking ENV variables
 
-#### Structure
+#### Structure and keywords
 
-ENV variables lack structure. The only way to mimic the structire is via use of an underscope character. For example to express a datomic url:
+ENV variables lack structure. The only way to mimic the structire is via use of an underscope character.
+The `_` is converted to `-` by cprop, so instead, to identify nesting, two underscores can be used.
 
-```clojure
-{:datomic
- {:url ... }}
-```
-
-ENV variable would have them separated by `_`:
-
-```bash
-export DATOMIC_URL=...
-```
-
-#### Types
-
-Also ENV variables, when read by [(System/getenv)](https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#getenv--) are all _strings_, hence.. no types, no data structures.
-
-```clojure
-{:http
- {:port 4242}}
-```
-
-Java reads all these as Strings:
-
-```bash
-export SERVER_PORT=4242
-```
-```bash
-export SERVER_PORT='4242'
-```
-```bash
-export SERVER_PORT="4242"
-```
-```bash
-export SERVER_PORT='"4242"'
-```
-
-#### Keywords
-
-An [EDN](https://github.com/edn-format/edn) config file is usually a map, where keys are not limited to be "single worded". For example:
+For example to override a socket timeout in a form of:
 
 ```clojure
 {:http
  {:pool
-  {:socket-timeout 600000,
-   :conn-timeout 60000,
-   :conn-req-timeout 600000,
-   :max-total 200,
-   :max-per-route 10}}}
+  {:socket-timeout 600000}}}
 ```
-
-A `socket-timeout` key has two words in it. It is both readable and it reflects the meaning behind this key a lot better than if it was a single word.
-
-Since ENV variables can only have alphanumerics and `_`, where `_` is already used for structure, it is not clear how to represent `{:http {:pool {:socket-timeout ...}}}` in a single ENV variable.
-
-### Taming ENV variables
-
-#### Structure
-
-To repesent nesting use underscores:
 
 ```bash
-export IO_HTTP_POOL
+export HTTP__POOL__SOCKET_TIMEOUT=4242
 ```
+
+Notice how two underscores are used for "getting in" and a single underscore just gets converted to a dash to match the keyword.
 
 #### Types
 
-To tame data structures and strings, use single quotes `'`, leave numbers as numbers:
+ENV variables, when read by [(System/getenv)](https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#getenv--) are all _strings_.
+
+cprop will convert these strings to datatypes. e.g.:
 
 ```bash
-export AWS_REGION='"ues-east-1"'     ## String
+export APP_HTTP_PORT=4242                 # would be a Long
+export APP_DB_URL=jdbc:sqlite:order.db    # would be a String
+export APP_DB_URL='jdbc:sqlite:order.db'  # would be a String
+export APP_DB_URL="jdbc:sqlite:order.db"  # would be a String
+export APP_NUMS='[1 2 3 4]'               # would be an EDN data structure (i.e. a vector in this example)
 ```
+
+A small caveat is _purely numberic_ strings. For example:
 
 ```bash
-export SERVER_PORT=4242              ## Number
+export BAD_PASSWORD='123456789'           # would still be a number (i.e. Long)
 ```
+
+in order to make it really a String, double quotes will help:
 
 ```bash
-export LUCKY_NUMBERS='[1 2 3 "42"]'  ## Vector (or any other data structure inside single quotes)
-```
-
-#### Keywords
-
-Since all we can use is `_` (underscore), use two of them to represent a `-` (dash) in a keyword:
-
-```clojure
-{:http
- {:pool
-  {:socket-timeout 600000,
-   :conn-timeout 60000,
-   :conn-req-timeout 600000,
-   :max-total 200,
-   :max-per-route 10}}}
-```
-
-```bash
-export IO_HTTP_POOL_CONN__TIMEOUT=60000
-export IO_HTTP_POOL_MAX__PER__ROUTE=10
+export BAD_PASSWORD='"123456789"'         # would be a String
 ```
 
 ### Merging ENV example
@@ -317,15 +345,18 @@ Let's say we have a config file that needs values to be complete:
 In order to fill out all the missing pieces we can export ENV variables as:
 
 ```bash
-export AWS_ACCESS__KEY='"AKIAIOSFODNN7EXAMPLE"'
-export AWS_SECRET__KEY='"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"'
-export AWS_REGION='"ues-east-1"'
-export IO_HTTP_POOL_CONN__TIMEOUT=60000
-export IO_HTTP_POOL_MAX__PER__ROUTE=10
+export AWS__ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
+export AWS__SECRET_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export AWS__REGION='ues-east-1'
+export IO__HTTP__POOL__CONN_TIMEOUT=60000
+export IO__HTTP__POOL__MAX_PER_ROUTE=10
 export OTHER__THINGS='[1 2 3 "42"]'
 ```
 
-Now whenever the config is loaded with `load-config` cprop will find these ENV variables and will merge them with the original config file in to a one complete configuration:
+_(all the 3 versions of AWS values will be Strings, different ways are here just as an example)_
+
+Now whenever the config is loaded with `(load-config)` cprop will find these ENV variables and will merge them
+with the original config file in to a one complete configuration:
 
 ```clojure
 user=> (load-config)
