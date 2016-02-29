@@ -2,67 +2,12 @@
   (:require [clojure.string :as s]
             [clojure.edn :as edn]
             [cprop.tools :refer [merge-maps]]
-            [cprop.source :refer [from-resource from-file ignore-missing-default]]))
-
-(defn- k->path [k dash level]
-  (as-> k $
-        (s/lower-case $)
-        (s/split $ level)
-        (map (comp keyword
-                   #(s/replace % dash "-"))
-             $)))
-
-(defn- str->value [v]
-  "ENV vars and system properties are strings. str->value will convert:
-  the numbers to longs, the alphanumeric values to strings, and will use Clojure reader for the rest
-  in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
-  (cond
-    (re-matches #"[0-9]+" v) (Long/parseLong v)
-    (re-matches #"\w+" v) v
-    :else
-    (try 
-      (let [parsed (edn/read-string v)]
-        (if (symbol? parsed)
-          v
-          parsed))
-         (catch Throwable _
-           v))))
-
-;; OS level ENV vars
-
-(defn- env->path [k]
-  (k->path k "_" #"__"))
-
-(defn- read-system-env []
-  (->> (System/getenv)
-       (map (fn [[k v]] [(env->path k) 
-                         (str->value v)]))
-       (into {})))
-
-;; System, application level properties
-
-(defn- sysprop->path [k]
-  (k->path k "." #"_"))
-
-(defn- read-system-props []
-  (->> (System/getProperties)
-       (map (fn [[k v]] [(sysprop->path k)
-                         (str->value v)]))
-       (into {})))
-
-;; merge ENV and system properties
-
-(defn- substitute [m [k-path v]]
-  (if (and (seq k-path) (get-in m k-path))
-    (do
-      (println "substituting" (vec k-path) "with an ENV/System property specific value")
-      (assoc-in m k-path v))
-    m))
-
-(defn- merge* [config with]
-  (reduce substitute config with))
-
-;; entry point
+            [cprop.source :refer [merge*
+                                  read-system-env
+                                  read-system-props
+                                  from-resource
+                                  from-file
+                                  ignore-missing-default]]))
 
 ;; (load-config :resource "a/b/c.edn"
 ;;              :file "/path/to/file.edn"

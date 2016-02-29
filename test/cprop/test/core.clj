@@ -1,6 +1,6 @@
 (ns cprop.test.core
   (:require [cprop.core :refer [load-config cursor]]
-            [cprop.source :refer [from-stream from-file from-resource]]
+            [cprop.source :refer [merge* from-stream from-file from-resource]]
             [clojure.edn :as edn]
             [clojure.test :refer :all]))
 
@@ -27,37 +27,38 @@
     (let [c (load-config)]
       (is (= ((cursor c (cursor c (cursor c :source) :account) :rabbit) :vhost) "/z-broker")))))
 
-(defn- read-system-env []
-  (->> {"DATOMIC_URL" "\"datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic\""
-        "AWS_ACCESS__KEY" "\"AKIAIOSFODNN7EXAMPLE\""
-        "AWS_SECRET__KEY" "\"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\""
-        "AWS_REGION" "\"ues-east-1\""
-        "IO_HTTP_POOL_CONN__TIMEOUT" "60000"
-        "IO_HTTP_POOL_MAX__PER__ROUTE" "10"
-        "OTHER__THINGS" "[1 2 3 \"42\"]"}
-       (map (fn [[k v]] [(#'cprop.core/env->path k) v]))
+(defn- read-test-env []
+  (->> {"DATOMIC__URL" "\"datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic\""
+        "AWS__ACCESS_KEY" "\"AKIAIOSFODNN7EXAMPLE\""
+        "AWS__SECRET_KEY" "\"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\""
+        "AWS__REGION" "\"ues-east-1\""
+        "IO__HTTP__POOL__CONN_TIMEOUT" "60000"
+        "IO__HTTP__POOL__MAX_PER_ROUTE" "10"
+        "OTHER_THINGS" "[1 2 3 \"42\"]"}
+       (map (fn [[k v]] [(#'cprop.source/env->path k)
+                         (#'cprop.source/str->value v)]))
        (into {})))
 
 (deftest from-source
-  (is (map? (from-stream "test/resources/config.edn")))
-  (is (map? (from-file "test/resources/config.edn")))
+  (is (map? (from-stream "dev-resources/config.edn")))
+  (is (map? (from-file "dev-resources/config.edn")))
   (is (map? (from-resource "config.edn")))
-  (is (map? (load-config :file "test/resources/config.edn")))
+  (is (map? (load-config :file "dev-resources/config.edn")))
   (is (map? (load-config :resource "config.edn")))
   (is (map? (load-config :resource "config.edn"
-                         :file "test/resources/fill-me-in.edn"))))
+                         :file "dev-resources/fill-me-in.edn"))))
 
 (deftest with-merge
   (is (= (load-config :resource "config.edn" 
                       :merge [{:source {:account {:rabbit {:port 4242}}}}])
          (assoc-in (load-config) [:source :account :rabbit :port] 4242)))
-  (is (= (load-config :file "test/resources/config.edn" 
+  (is (= (load-config :file "dev-resources/config.edn" 
                       :merge [{:source {:account {:rabbit {:port 4242}}}}
                               {:datomic {:url :foo}}])
          (assoc-in (assoc-in (load-config) [:source :account :rabbit :port] 4242)
                    [:datomic :url] :foo)))
   (is (= (load-config :resource "config.edn"
-                      :file "test/resources/config.edn"
+                      :file "dev-resources/config.edn"
                       :merge [{:source {:account {:rabbit {:port 4242}}}}
                               {:datomic {:url :foo}}
                               {:datomic {:url :none}}])
@@ -66,15 +67,8 @@
 
 (deftest should-merge-with-env
   (let [config (edn/read-string
-                 (slurp "test/resources/fill-me-in.edn"))
-        env {[:datomic :url] "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"
-             [:aws :region] "ues-east-1"
-             [:aws :access-key] "AKIAIOSFODNN7EXAMPLE"
-             [:aws :secret-key] "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-             [:io :http :pool :conn-timeout] 60000
-             [:io :http :pool :max-per-route] 10
-             [:other-things] [1 2 3 "42"]}
-        merged (#'cprop.core/merge* config env)]
+                 (slurp "dev-resources/fill-me-in.edn"))
+        merged (merge* config (read-test-env))]
 
     (is (= {:datomic {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
             :aws {:access-key "AKIAIOSFODNN7EXAMPLE",
@@ -101,7 +95,7 @@
                "io_http_pool_socket.timeout" "4242"}
         _      (doseq [[k v] props] (System/setProperty k v))
         config (load-config :resource "fill-me-in.edn"
-                            :file "test/resources/fill-me-in.edn")]
+                            :file "dev-resources/fill-me-in.edn")]
 
     (is (= {:datomic {:url "sys-url"},
             :aws
