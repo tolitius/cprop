@@ -66,7 +66,16 @@
 
 (deftest should-merge-with-env
   (let [config (edn/read-string
-                 (slurp "test/resources/fill-me-in.edn"))]
+                 (slurp "test/resources/fill-me-in.edn"))
+        env {[:datomic :url] "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"
+             [:aws :region] "ues-east-1"
+             [:aws :access-key] "AKIAIOSFODNN7EXAMPLE"
+             [:aws :secret-key] "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+             [:io :http :pool :conn-timeout] 60000
+             [:io :http :pool :max-per-route] 10
+             [:other-things] [1 2 3 "42"]}
+        merged (#'cprop.core/merge* config env)]
+
     (is (= {:datomic {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
             :aws {:access-key "AKIAIOSFODNN7EXAMPLE",
                   :secret-key "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
@@ -83,4 +92,36 @@
                :max-total 200,
                :max-per-route 10}}},
             :other-things [1 2 3 "42"]}
-           (#'cprop.core/merge* config (read-system-env))))))
+
+           merged))))
+
+(deftest should-merge-with-sys-props
+  (let [props {"datomic_url" "sys-url"
+               "aws_access.key" "sys-key"
+               "io_http_pool_socket.timeout" "4242"}
+        _      (doseq [[k v] props] (System/setProperty k v))
+        config (load-config :resource "fill-me-in.edn"
+                            :file "test/resources/fill-me-in.edn")]
+
+    (is (= {:datomic {:url "sys-url"},
+            :aws
+            {:access-key "sys-key",
+             :secret-key "ME TOO",
+             :region "FILL ME IN AS WELL",
+             :visiblity-timeout-sec 30,
+             :max-conn 50,
+             :queue "cprop-dev"},
+            :io
+            {:http
+             {:pool
+              {:socket-timeout 4242,
+               :conn-timeout :I-SHOULD-BE-A-NUMBER,
+               :conn-req-timeout 600000,
+               :max-total 200,
+               :max-per-route :ME-ALSO}}},
+            :other-things
+            ["I am a vector and also like to place the substitute game"]}
+
+           config))
+
+    (doseq [[k _] props] (System/clearProperty k))))
