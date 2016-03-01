@@ -64,10 +64,14 @@
 
 ;; merge existing configuration with ENV, system properties
 
+(defn in-debug? []
+  (let [debug (System/getenv "DEBUG")]
+    (and debug (= (s/lower-case debug) "y"))))
+
 (defn- substitute [m [k-path v]]
   (if (and (seq k-path) (get-in m k-path))
     (do
-      (when (= (s/lower-case (System/getenv "DEBUG")) "y")
+      (when (in-debug?)
         (println "substituting" (vec k-path) "with an ENV/System property specific value"))
       (assoc-in m k-path v))
     m))
