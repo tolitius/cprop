@@ -15,7 +15,10 @@ where all configuration properties converge
 - [Merging with system properties](#merging-with-system-properties)
   - [System properties cprop syntax](#system-properties-cprop-syntax)
 - [Merging with ENV variables](#merging-with-env-variables)
+  - [Default](#default-1)
   - [Speaking ENV variables](#speaking-env-variables)
+    - [Structure and keywords](#structure-and-keywords)
+    - [Types](#types)
   - [Merging ENV example](#merging-env-example)
 - [Cursors](#cursors)
   - [Composable Cursors](#composable-cursors)
@@ -264,6 +267,19 @@ While not _everything_ needs to live in environment variables + config files are
 > A litmus test for whether an app has all config correctly factored out of the code is whether the codebase could be made open source at any moment, without compromising any credentials.
 
 Hence it makes a lot of sense for `cprop` to merge the config file with ENV variables when `(load-config)` is called.
+
+### Default
+
+By default cprop will merge all configurations with ENV variables that match the ones that are there in configs (i.e. intersection).
+In case ALL ENV variables need to be merged (i.e. union), this can be done with `:merge`:
+
+```clojure
+(require '[cprop.source :refer [from-env]])
+
+(load-config :merge [(from-env)])
+```
+
+`(from-env)` returns a map of ALL environment variables that is ready to be merged with the config.
 
 ### Speaking ENV variables
 
