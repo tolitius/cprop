@@ -11,7 +11,7 @@ where all configuration properties converge
   - [Loading from "The Source"](#loading-from-the-source)
 - [Using properties](#using-properties)
 - [Merging Configurations](#merging-configurations)
-  - [Merging will ALL System properties and/or ENV variables](#merging-will-all-system-properties-andor-env-variables)
+  - [Merging with all System and ENV](#merging-with-all-system-and-env)
 - [Merging with system properties](#merging-with-system-properties)
   - [System properties cprop syntax](#system-properties-cprop-syntax)
 - [Merging with ENV variables](#merging-with-env-variables)
@@ -166,7 +166,7 @@ And of course `:merge` well composes with `:resource` and `:file`:
                      (parse-runtime-args ...)])
 ```
 
-### Merging will ALL System properties and/or ENV variables
+### Merging with all System and ENV
 
 By default only _matching_ configuration properties will be overriden with the ones from system or ENV.
 In case all the system properties or ENV variables are needed (i.e. to add / override something that does not exist in the config),
@@ -316,7 +316,7 @@ export APP_DB_URL="jdbc:sqlite:order.db"  # would be a String
 export APP_NUMS='[1 2 3 4]'               # would be an EDN data structure (i.e. a vector in this example)
 ```
 
-A small caveat is _purely numberic_ strings. For example:
+A small caveat is _purely numeric_ strings. For example:
 
 ```bash
 export BAD_PASSWORD='123456789'           # would still be a number (i.e. Long)
