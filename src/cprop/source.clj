@@ -65,8 +65,8 @@
 ;; merge existing configuration with ENV, system properties
 
 (defn in-debug? []
-  (let [debug (System/getenv "DEBUG")]
-    (and debug (= (s/lower-case debug) "y"))))
+  (when-let [debug (System/getenv "DEBUG")]
+    (= (s/lower-case debug) "y")))
 
 (defn- substitute [m [k-path v]]
   (if (and (seq k-path) (get-in m k-path))
