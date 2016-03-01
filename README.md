@@ -2,7 +2,7 @@
 
 where all configuration properties converge
 
-![](https://clojars.org/cprop/latest-version.svg)
+[![Clojars Project](https://clojars.org/cprop/latest-version.svg)](http://clojars.org/cprop)
 
 - [Why](#why)
 - [What does cprop do?](#what-does-cprop-do)
