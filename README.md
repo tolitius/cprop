@@ -93,7 +93,7 @@ as in the case with defaults, file system properties would override matching cla
 `(load-config)` function returns a Clojure map, while you can create [cursors](README.md#cursors), working with a config is no different than just working with a map:
 
 ```clojure
-{:datamic 
+{:datomic 
     {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}
  :source
     {:account
@@ -428,7 +428,7 @@ In case you pass a cursor somewhere, you can still build new cursors out of it b
 working with the same config as in the example above:
 
 ```clojure
-{:datamic 
+{:datomic 
     {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}
  :source
     {:account
