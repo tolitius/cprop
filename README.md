@@ -60,7 +60,7 @@ By default `cprop` would look in two places for configuration files:
 * classpath: for the `config.edn` resource
 * file system: for a path identified by the `conf` system property
 
-If both are there, they will be merged with file system overriding matching classpath properties,
+If both are there, they will be merged. A `file system` source would override matching properties from a `classpath` source,
 and the result will be [merged with System properties](README.md#merging-with-system-properties)
 and then [merged with ENV variables](README.md#merging-with-env-variables)
 for all the _matching_ properties.
@@ -358,7 +358,7 @@ In order to fill out all the missing pieces we can export ENV variables as:
 ```bash
 export AWS__ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
 export AWS__SECRET_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-export AWS__REGION='ues-east-1'
+export AWS__REGION='us-east-1'
 export IO__HTTP__POOL__CONN_TIMEOUT=60000
 export IO__HTTP__POOL__MAX_PER_ROUTE=10
 export OTHER__THINGS='[1 2 3 "42"]'
@@ -384,7 +384,7 @@ substituting [:other-things] with a ENV/system.property specific value
  :aws
  {:access-key "AKIAIOSFODNN7EXAMPLE",
   :secret-key "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-  :region "ues-east-1",
+  :region "us-east-1",
   :visiblity-timeout-sec 30,
   :max-conn 50,
   :queue "cprop-dev"},
