@@ -428,7 +428,7 @@ In case you pass a cursor somewhere, you can still build new cursors out of it b
 working with the same config as in the example above:
 
 ```clojure
-{:datamic 
+{:datomic 
     {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}
  :source
     {:account
