@@ -168,7 +168,7 @@ And of course `:merge` well composes with `:resource` and `:file`:
 
 ### Merging with all System and ENV
 
-By default only _matching_ configuration properties will be overriden with the ones from system or ENV.
+By default only _matching_ configuration properties will be overridden with the ones from system or ENV.
 In case all the system properties or ENV variables are needed (i.e. to add / override something that does not exist in the config),
 it can be done with `:merge` as well, since it does a "deep merge" (merges all the nested structures as well):
 
@@ -256,7 +256,7 @@ System.setProperty("http_pool_socket.timeout" "4242");
 
 ## Merging with ENV variables
 
-Production environments are full of "secrets", could be passwords, URLs, ports, keys, etc.. Which are better drived by the ENV variables rather than being hardcoded in the config file.
+Production environments are full of "secrets", could be passwords, URLs, ports, keys, etc.. Which are better driven by the ENV variables rather than being hardcoded in the config file.
 
 12 factor [config section](http://12factor.net/config) mentions that:
 
@@ -285,7 +285,7 @@ In case ALL ENV variables need to be merged (i.e. union), this can be done with 
 
 #### Structure and keywords
 
-ENV variables lack structure. The only way to mimic the structire is via use of an underscope character.
+ENV variables lack structure. The only way to mimic the structure is via use of an underscore character.
 The `_` is converted to `-` by cprop, so instead, to identify nesting, two underscores can be used.
 
 For example to override a socket timeout in a form of:
@@ -350,7 +350,7 @@ Let's say we have a config file that needs values to be complete:
     :max-total 200,
     :max-per-route :ME-ALSO}}},
  :other-things
- ["I am a vector and also like to place the substitute game"]}
+ ["I am a vector and also like to play the substitute game"]}
 ```
 
 In order to fill out all the missing pieces we can export ENV variables as:
@@ -367,7 +367,7 @@ export OTHER__THINGS='[1 2 3 "42"]'
 _(all the 3 versions of AWS values will be Strings, different ways are here just as an example)_
 
 Now whenever the config is loaded with `(load-config)` cprop will find these ENV variables and will merge them
-with the original config file in to a one complete configuration:
+with the original config file into one complete configuration:
 
 ```clojure
 user=> (load-config)
@@ -522,7 +522,7 @@ substituting [:other-things] with a ENV/system.property specific value
 #### Why not default?
 
 The reason this is not on by default is merging ALL env and/or system properties with configs
-which is quite noisy and not very useful (i.e. can be hundrends of entries..).
+which is quite noisy and not very useful (i.e. can be hundreds of entries..).
 
 ## License
 
