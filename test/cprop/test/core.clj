@@ -119,3 +119,19 @@
            config))
 
     (doseq [[k _] props] (System/clearProperty k))))
+
+(deftest should-merge-booleans
+  (let [props {"datomic_url" "true"
+               "aws_access.key" "false"
+               "io_http_pool_socket.timeout" "True"
+               "io_http_pool_conn.timeout" ".true"
+               "io_http_pool_max.total" "truee"}
+        _      (doseq [[k v] props] (System/setProperty k v))
+        config (load-config :resource "fill-me-in.edn"
+                            :file "dev-resources/fill-me-in.edn")]
+    (is (true? (get-in config [:datomic :url])))
+    (is (false? (get-in config [:aws :access-key])))
+    (is (string? (get-in config [:io :http :pool :socket-timeout])))
+    (is (string? (get-in config [:io :http :pool :conn-timeout])))
+    (is (string? (get-in config [:io :http :pool :max-total])))
+    (doseq [[k _] props] (System/clearProperty k))))

@@ -26,6 +26,7 @@
   in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
   (cond
     (re-matches #"[0-9]+" v) (Long/parseLong v)
+    (re-matches #"^(true|false)$" v) (Boolean/parseBoolean v)
     (re-matches #"\w+" v) v
     :else
     (try 
