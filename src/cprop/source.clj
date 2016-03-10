@@ -1,7 +1,8 @@
 (ns cprop.source
   (:require [clojure.edn :as edn]
             [clojure.string :as s]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [cprop.tools :refer [contains-in?]])
   (:import java.util.MissingResourceException
            java.io.PushbackReader ))
 
@@ -70,7 +71,7 @@
     (= (s/lower-case debug) "y")))
 
 (defn- substitute [m [k-path v]]
-  (if (and (seq k-path) (get-in m k-path))
+  (if (and (seq k-path) (contains-in? m k-path))
     (do
       (when (in-debug?)
         (println "substituting" (vec k-path) "with an ENV/System property specific value"))
