@@ -39,7 +39,7 @@ there are several env/config ways, libraries.
 ## What does cprop do?
 
 * loads an [EDN](https://github.com/edn-format/edn) config from a classpath and/or file system 
-* merges it with system proppertis and ENV variables + the optional merge from sources (file, db, mqtt, http, etc.)
+* merges it with system properties and ENV variables + the optional merge from sources (file, db, mqtt, http, etc.)
 * returns an (immutable) map
 * while keeping _no internal state_ => different configs could be used within the same app, i.e. for app sub modules
 
