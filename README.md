@@ -482,7 +482,7 @@ There are several ways the `conf` property can be set:
 ####command line
 
 ```clojure
-java -jar whatsapp.jar -Dconf="../somepath/whatsapp.conf"
+java -Dconf="../somepath/whatsapp.conf" -jar whatsapp.jar
 ```
 
 ####boot
