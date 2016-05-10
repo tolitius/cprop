@@ -56,3 +56,7 @@
 
 (defn merge-maps [& m]
   (apply deep-merge-with (fn [_ v] v) m))
+
+(defn cloak [m & paths]
+  (reduce (fn [m path]
+            (update-in m path (fn [k] "*******"))) m paths))
