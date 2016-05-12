@@ -37,7 +37,8 @@
   "checks whether the nested key exists in a map"
   [m k-path] 
   (let [one-before (get-in m (drop-last k-path))]
-    (contains? one-before (last k-path))))
+    (when (map? one-before)                        ;; in case k-path is "longer" than a map: {:a {:b {:c 42}}} => [:a :b :c :d]
+      (contains? one-before (last k-path)))))
 
 ;; author of "deep-merge-with" is Chris Chouser: https://github.com/clojure/clojure-contrib/commit/19613025d233b5f445b1dd3460c4128f39218741
 (defn deep-merge-with
