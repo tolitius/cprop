@@ -19,11 +19,15 @@
                (conj path [(key->prop k) v])))
   [] m))
 
+(defn temp-file 
+  ([fname] (temp-file fname ".tmp"))
+  ([fname ext]
+   (.getAbsolutePath 
+     (java.io.File/createTempFile fname ext))))
+
 (defn map->props-file [{:keys [props-file] :as m}]
   (let [fpath (apply str (or (seq props-file) 
-                             (str "/tmp/cprops-"
-                                  (System/currentTimeMillis)
-                                  ".tmp.properties")))
+                             (temp-file (str "cprops-" (System/currentTimeMillis) "-"))))
         mprops (dissoc m :props-file)]
     (spit fpath (reduce (fn [f [k v]]
                           (str f k "=" v "\n")) 
