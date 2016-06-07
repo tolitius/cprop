@@ -65,3 +65,8 @@
 (defn cloak [m & paths]
   (reduce (fn [m path]
             (update-in m path (fn [k] "*******"))) m paths))
+
+(defn with-echo [config resource path]
+  (when config
+    (println (str "read config from " resource ": \"" path "\""))
+    config))

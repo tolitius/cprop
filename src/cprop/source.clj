@@ -2,7 +2,7 @@
   (:require [clojure.edn :as edn]
             [clojure.string :as s]
             [clojure.java.io :as io]
-            [cprop.tools :refer [contains-in?]])
+            [cprop.tools :refer [contains-in? with-echo]])
   (:import java.util.MissingResourceException
            java.io.PushbackReader ))
 
@@ -95,7 +95,7 @@
   ;; TODO would throw "FileNotFoundException" i.e. won't be just nil
   (if-let [stream (io/input-stream resource)]
     (try
-      (read-config stream)
+      (with-echo (read-config stream) "stream" resource)
       (catch Throwable t
         (throw (IllegalArgumentException.
                  (str "the \"" resource "\" contains invalid config (problem with the format?) " t)))))
@@ -110,7 +110,7 @@
    (let [file (io/file path)]
      (if (and file (.exists file))
        (try
-         (read-config file)
+         (with-echo (read-config file) "file" path)
          (catch Throwable t
            (throw (IllegalArgumentException.
                     (str "a path to " path-prop " \"" path "\" can't be found or have an invalid config (problem with the format?) " t)))))
@@ -128,7 +128,7 @@
    (if-let [url (io/resource resource)]
      (try
        (with-open [r (-> url io/reader PushbackReader.)]
-         (edn/read r))
+         (with-echo (edn/read r) "resource" resource))
        (catch Throwable t
          (throw (Throwable. (str "failed to parse \"" resource "\": " (.getLocalizedMessage t))))))
      (throw (MissingResourceException. (str "resource \"" resource "\" not found on the resource path") "" "")))))
