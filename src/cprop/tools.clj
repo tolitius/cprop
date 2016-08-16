@@ -63,8 +63,10 @@
   (apply deep-merge-with (fn [_ v] v) m))
 
 (defn cloak [m & paths]
-  (reduce (fn [m path]
-            (update-in m path (fn [k] "*******"))) m paths))
+  (reduce (fn [am path]
+            (if (contains-in? am path)
+              (update-in am path (fn [k] "*******"))
+              am)) m paths))
 
 (defn with-echo [config resource path]
   (when config
