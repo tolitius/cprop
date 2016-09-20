@@ -3,6 +3,7 @@
 where all configuration properties converge
 
 [![Clojars Project](https://clojars.org/cprop/latest-version.svg)](http://clojars.org/cprop)
+> <img src="doc/img/slack-icon.png" width="30px"> _any_ questions or feedback: [`#mount`](https://clojurians.slack.com/messages/mount/) clojurians slack channel (or just [open an issue](https://github.com/tolitius/cprop/issues))
 
 - [Why](#why)
 - [What does cprop do?](#what-does-cprop-do)
