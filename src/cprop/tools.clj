@@ -6,18 +6,28 @@
       name 
       (s/replace "-" "_")))
 
-(defn link [from [to value]]
-  (let [to (key->prop to)]
-    [(str from "." to) value]))
+(defn key->env [k]
+  (-> (key->prop k)
+      (s/upper-case)))
 
-(defn map->props [m]
+(defn link [connect from [to value]]
+  (let [to (key->prop to)]
+    [(str from connect to) value]))
+
+(defn- map->flat [m key->x connect]
   (reduce-kv (fn [path k v] 
                (if (map? v)
-                 (concat (map (partial link (key->prop k))
-                              (map->props v))
+                 (concat (map (partial link connect (key->x k))
+                              (map->flat v key->x connect))
                          path)
-               (conj path [(key->prop k) v])))
-  [] m))
+                 (conj path [(key->x k) v])))
+             [] m))
+
+(defn- map->props [m]
+  (map->flat m key->prop "."))
+
+(defn- map->env [m]
+  (map->flat m key->env "__"))
 
 (defn temp-file 
   ([fname] (temp-file fname ".tmp"))
@@ -25,14 +35,27 @@
    (.getAbsolutePath 
      (java.io.File/createTempFile fname ext))))
 
-(defn map->props-file [{:keys [props-file] :as m}]
+(defn- map->x-file [{:keys [props-file] :as m} m->x prop->x]
   (let [fpath (apply str (or (seq props-file) 
                              (temp-file (str "cprops-" (System/currentTimeMillis) "-"))))
         mprops (dissoc m :props-file)]
-    (spit fpath (reduce (fn [f [k v]]
-                          (str f k "=" v "\n")) 
-                        "" (map->props mprops)))
+    (spit fpath (reduce (fn [f prop]
+                          (str f (prop->x prop) "\n")) 
+                        "" (m->x mprops)))
     fpath))
+
+(defn to-prop [[k v]]
+  (str k "=" v))
+
+(defn to-env [[k v]]
+  (str "export " k "=" v))
+
+(defn map->props-file [m]
+  (map->x-file m map->props to-prop))
+
+(defn map->env-file [m]
+  (map->x-file m map->env to-env))
+
 
 ;; props to edn TBD
 
