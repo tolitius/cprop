@@ -23,6 +23,10 @@ where all configuration properties converge
   - [Merging ENV example](#merging-env-example)
 - [Cursors](#cursors)
   - [Composable Cursors](#composable-cursors)
+- [Tools](#tools)
+  - [Translating EDN](#translating-edn)
+    - [EDN to .properties](#edn-to-properties)
+    - [EDN to .env](#edn-to-env)
 - [Tips](#tips)
   - [Setting the "conf" system property](#setting-the-conf-system-property)
   - [See what properties were substituted](#see-what-properties-were-substituted)
@@ -472,6 +476,88 @@ user=> (def rabbit (cursor conf src :account :rabbit))
 
 user=> (rabbit :host)
 "127.0.0.1"
+```
+
+## Tools
+
+### Translating EDN
+
+Depending on the build infrastructure, continuous integration, deployments, some environments would require `.properties` files with overrides instead of EDN configs or ENV variable overrides.
+
+Also it's easier to use EDN file with overrides in development before converting them to a set of ENV variables, but it can take some time, and would somewhat error prone, to convert this EDN file with overrides to a set of ENV variables.
+
+For those cases above cprop has helper tools that can help translating from EDN.
+
+Let's use [this config file](dev-resources/config.edn) an example:
+
+```clojure
+boot.user=> (pprint config)
+{:datomic
+ {:url
+  "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
+ :source
+ {:account
+  {:rabbit
+   {:host "127.0.0.1",
+    :port 5672,
+    :vhost "/z-broker",
+    :username "guest",
+    :password "guest"}}},
+ :answer 42}
+```
+
+#### EDN to .properties
+
+We can pass this config to a `map->props-file` function that will convert it to a `.properties` formatted file:
+
+```clojure
+(require '[cprop.tools :as t])
+```
+
+```clojure
+(t/map->props-file config)
+"/tmp/cprops-1475854845508-538388633502378948.tmp"
+```
+
+it returns a path to a file it created, which we can look at:
+
+```clojure
+(print (slurp "/tmp/cprops-1475854845508-538388633502378948.tmp"))
+
+answer=42
+source.account.rabbit.host=127.0.0.1
+source.account.rabbit.port=5672
+source.account.rabbit.vhost=/z-broker
+source.account.rabbit.username=guest
+source.account.rabbit.password=guest
+datomic.url=datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic
+```
+
+#### EDN to .env
+
+We can pass this config to a `map->env-file` function that will convert it to a `.env` formatted file:
+
+```clojure
+(require '[cprop.tools :as t])
+```
+
+```clojure
+(t/map->env-file config)
+"/tmp/cprops-1475854874506-8756956459082793585.tmp"
+```
+
+it returns a path to a file it created, which we can look at:
+
+```clojure
+(print (slurp "/tmp/cprops-1475854874506-8756956459082793585.tmp"))
+
+export ANSWER=42
+export SOURCE__ACCOUNT__RABBIT__HOST=127.0.0.1
+export SOURCE__ACCOUNT__RABBIT__PORT=5672
+export SOURCE__ACCOUNT__RABBIT__VHOST=/z-broker
+export SOURCE__ACCOUNT__RABBIT__USERNAME=guest
+export SOURCE__ACCOUNT__RABBIT__PASSWORD=guest
+export DATOMIC__URL=datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic
 ```
 
 ## Tips
