@@ -92,6 +92,7 @@
               am)) m paths))
 
 (defn with-echo [config resource path]
-  (when config
+  (if-not (empty? config)
     (println (str "read config from " resource ": \"" path "\""))
-    config))
+    (println (str "(!) read config from " resource ": \"" path "\", but it is empty")))
+  config)

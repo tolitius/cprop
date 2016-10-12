@@ -125,12 +125,14 @@
   ([]
    (from-resource default-resource-name))
   ([resource]
-   (if-let [url (io/resource resource)]
+   (if-let [url (when (seq resource)
+                  (io/resource resource))]
      (try
-       (with-open [r (-> url io/reader PushbackReader.)]
-         (with-echo (edn/read r) "resource" resource))
+       (-> (slurp url)
+           edn/read-string
+           (with-echo "resource" resource))
        (catch Throwable t
-         (throw (Throwable. (str "failed to parse \"" resource "\": " (.getLocalizedMessage t))))))
+         (throw (Throwable. (str "failed to parse \"" resource "\": ") t))))
      (throw (MissingResourceException. (str "resource \"" resource "\" not found on the resource path") "" "")))))
 
 (defn ignore-missing-default

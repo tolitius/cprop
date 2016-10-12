@@ -21,7 +21,7 @@
             (apply merge-maps (cons $ merge))
             (merge* $ (read-system-props))
             (merge* $ (read-system-env)))
-      (throw (RuntimeException. (str "could not find a configuration file to load. "
+      (throw (RuntimeException. (str "could not find a non empty configuration file to load. "
                                      "looked in the classpath (as a \"resource\") "
                                      "and on a file system via \"conf\" system property"))))))
 
