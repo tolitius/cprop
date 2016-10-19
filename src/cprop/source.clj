@@ -128,8 +128,7 @@
    (if-let [url (when (seq resource)
                   (io/resource resource))]
      (try
-       (-> (slurp url)
-           edn/read-string
+       (-> (edn/read-string {:readers *data-readers*} (slurp url))
            (with-echo "resource" resource))
        (catch Throwable t
          (throw (Throwable. (str "failed to parse \"" resource "\": ") t))))
