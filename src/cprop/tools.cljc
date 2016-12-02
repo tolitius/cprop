@@ -1,5 +1,39 @@
 (ns cprop.tools
-  (:require [clojure.string :as s]))
+  #?(:clj  (:require [clojure.string :as s]
+                     [cprop.logger :refer [log]])
+     :cljs (:require [cprop.logger :refer [log]]))
+  #?(:cljs (:require-macros [cprop.tools])))
+
+#?(:clj
+    (defmacro if-clj [then else]
+      (if (-> &env :ns not)
+        then
+        else)))
+
+#?(:clj
+    (defmacro on-error [msg f]
+      `(if-clj
+         (try ~f
+              (catch Throwable t#
+                (throw (RuntimeException. ~msg t#))))
+         (try ~f
+              (catch :default t#
+                (throw (~'str ~msg " " t#)))))))
+
+#?(:clj
+    (defmacro default-on-error [f default]
+      `(if-clj
+         (try ~f
+              (catch Throwable t#
+                ~default))
+         (try ~f
+              (catch :default t#
+                ~default)))))
+
+#?(:clj
+    (defmacro throw-runtime [msg]
+      `(throw (if-clj (RuntimeException. ~msg)
+                      (~'str ~msg)))))
 
 (defn key->prop [k]
   (-> k 
@@ -93,6 +127,6 @@
 
 (defn with-echo [config resource path]
   (if-not (empty? config)
-    (println (str "read config from " resource ": \"" path "\""))
-    (println (str "(!) read config from " resource ": \"" path "\", but it is empty")))
+    (log (str "read config from " resource ": \"" path "\""))
+    (log (str "(!) read config from " resource ": \"" path "\", but it is empty")))
   config)

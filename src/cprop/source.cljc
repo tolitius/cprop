@@ -1,17 +1,31 @@
 (ns cprop.source
-  (:require [clojure.edn :as edn]
-            [clojure.string :as s]
-            [clojure.java.io :as io]
-            [cprop.tools :refer [contains-in? with-echo]])
-  (:import java.util.MissingResourceException
-           java.io.PushbackReader ))
+  #?(:clj
+      (:require [clojure.edn :as edn]
+                [clojure.string :as s]
+                [clojure.java.io :as io]
+                [cprop.logger :refer [log]]
+                [cprop.tools :refer [on-error default-on-error contains-in? with-echo]]))
+  #?(:clj
+      (:import java.util.MissingResourceException
+               java.io.PushbackReader))
+  #?(:cljs
+      (:require [cljs.clojure.string :as s]
+                [cljs.reader :as edn]
+                [cprop.tools :refer [on-error default-on-error contains-in? with-echo]]
+                [cprop.logger :refer [log]])))
 
 (defonce default-resource-name "config.edn")
 (defonce path-prop "conf")
 
-(defn read-config [input]
-  (edn/read-string
-    (slurp input)))
+#?(:clj
+    (defn read-config [input]
+      (edn/read-string
+        (slurp input)))
+
+   :cljs
+    (defn read-config [read-resource path] ;; reas-resource is a JS runtime specific fn that slurps a file
+      (edn/read-string
+        (read-resource path))))
 
 (defn- k->path [k dash level]
   (as-> k $
@@ -26,25 +40,47 @@
   the numbers to longs, the alphanumeric values to strings, and will use Clojure reader for the rest
   in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
   (cond
-    (re-matches #"[0-9]+" v) (Long/parseLong v)
-    (re-matches #"^(true|false)$" v) (Boolean/parseBoolean v)
+    (re-matches #"[0-9]+" v) #?(:clj (Long/parseLong v)
+                                :cljs (js/parseInt v))
+    (re-matches #"^(true|false)$" v) #?(:clj (Boolean/parseBoolean v)
+                                        :cljs (js/eval v))
     (re-matches #"\w+" v) v
     :else
-    (try 
-      (let [parsed (edn/read-string v)]
-        (if (symbol? parsed)
-          v
-          parsed))
-         (catch Throwable _
-           v))))
+    (default-on-error (let [parsed (edn/read-string v)]
+                        (if (symbol? parsed)
+                          v
+                          parsed))
+                      v)))
 
 ;; OS level ENV vars
+
+#?(:clj
+    (defn system-getenv 
+      ([] (System/getenv))
+      ([v]
+       (System/getenv v)))
+
+    :cljs
+    (defn system-getenv
+      ([] 
+       ;; (log "a function to read env vars was not provided: env vars were not read/used")
+       {})
+      ([v] "")))
+
+#?(:clj
+   (defn system-getprops []
+     (System/getProperties))
+   
+   :cljs
+   (defn system-getprops []
+     ;; (log "a function to read system properties was not provided: system properties were not read/used")
+     {}))
 
 (defn- env->path [k]
   (k->path k "_" #"__"))
 
-(defn read-system-env []
-  (->> (System/getenv)
+(defn read-system-env [get-env]
+  (->> (get-env)
        (map (fn [[k v]] [(env->path k) 
                          (str->value v)]))
        (into {})))
@@ -54,8 +90,8 @@
 (defn- sysprop->path [k]
   (k->path k "." #"_"))
 
-(defn read-system-props []
-  (->> (System/getProperties)
+(defn read-system-props [get-props]
+  (->> (get-props)
        (map (fn [[k v]] [(sysprop->path k)
                          (str->value v)]))
        (into {})))
@@ -66,15 +102,15 @@
 
 ;; merge existing configuration with ENV, system properties
 
-(defn in-debug? []
-  (when-let [debug (System/getenv "DEBUG")]
+(defn in-debug? [get-env]
+  (when-let [debug (get-env "DEBUG")]
     (= (s/lower-case debug) "y")))
 
 (defn- substitute [m [k-path v]]
   (if (and (seq k-path) (contains-in? m k-path))
     (do
-      (when (in-debug?)
-        (println "substituting" (vec k-path) "with an ENV/System property specific value"))
+      (when (in-debug? system-getenv)
+        (log "substituting" (vec k-path) "with an ENV/System property specific value"))
       (assoc-in m k-path v))
     m))
 
@@ -83,11 +119,15 @@
 
 ;; sources
 
-(defn from-env []
-  (sys->map (read-system-env)))
+(defn from-env 
+  ([] (from-env system-getenv))
+  ([get-env]
+   (sys->map (read-system-env get-env))))
 
-(defn from-system-props []
-  (sys->map (read-system-props)))
+(defn from-system-props
+  ([] (from-system-props system-getprops))
+  ([get-props]
+   (sys->map (read-system-props get-props))))
 
 (defn from-stream
   "load configuration from a resource that can be coerced into an input-stream"
