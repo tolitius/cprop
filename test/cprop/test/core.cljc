@@ -135,3 +135,18 @@
     (is (string? (get-in config [:io :http :pool :conn-timeout])))
     (is (string? (get-in config [:io :http :pool :max-total])))
     (doseq [[k _] props] (System/clearProperty k))))
+
+(deftest should-throw-on-resource-not-found
+  (is (thrown-with-msg? java.util.MissingResourceException 
+                        #"resource \"empty\" not found on the resource path"
+                        (load-config :resource "empty"))))
+
+(deftest should-throw-on-file-not-found
+  (is (thrown-with-msg? java.util.MissingResourceException 
+                        #"can't find a configuration file path: \"not-here\". besides providing it via \"\(load-config :file <path>\)\", it could also be set via \"conf\" system property \(i.e. -Dconf=<path>\)"
+                        (load-config :resource "empty.edn" :file "not-here"))))
+
+(deftest should-throw-when-empty-config
+  (is (thrown-with-msg? java.lang.RuntimeException
+                        #"could not find a non empty configuration file to load. looked in the classpath \(as a \"resource\"\) and on a file system via \"conf\" system property"
+                        (load-config :resource "empty.edn" :file "dev-resources/empty.edn"))))
