@@ -4,7 +4,9 @@
             [clojure.java.io :as io]
             [cprop.tools :refer [contains-in? with-echo]])
   (:import java.util.MissingResourceException
-           java.io.PushbackReader ))
+           java.io.PushbackReader
+           java.io.StringReader
+           java.util.Properties))
 
 (defonce default-resource-name "config.edn")
 (defonce path-prop "conf")
@@ -49,8 +51,10 @@
                          (str->value v)]))
        (into {})))
 
-;; System, application level properties
+;; System properties
 
+;; TODO: think about reversing it (k->path k "_" #"\.")
+;; since this is usually the .properties structure
 (defn- sysprop->path [k]
   (k->path k "." #"_"))
 
@@ -59,6 +63,26 @@
        (map (fn [[k v]] [(sysprop->path k)
                          (str->value v)]))
        (into {})))
+
+;; .properties files
+
+(defn- prop-key->path [k]
+  (k->path k "_" #"\."))
+
+(defn- slurp-props-file
+  "mutable Properties to immutable map"
+  [path]
+  (let [ps (Properties.)]
+    (->> (StringReader. (slurp path))
+         (.load ps))
+    (into {} ps)))
+
+(defn read-props-file [path]
+  (->> (slurp-props-file path)
+       (map (fn [[k v]] [(prop-key->path k)
+                         (str->value v)]))
+       (into {})))
+
 
 (defn- sys->map [sys]
   (reduce (fn [m [k-path v]]
@@ -88,6 +112,9 @@
 
 (defn from-system-props []
   (sys->map (read-system-props)))
+
+(defn from-props-file [path]
+  (sys->map (read-props-file path)))
 
 (defn from-stream
   "load configuration from a resource that can be coerced into an input-stream"

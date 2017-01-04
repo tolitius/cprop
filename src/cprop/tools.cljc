@@ -56,10 +56,6 @@
 (defn map->env-file [m]
   (map->x-file m map->env to-env))
 
-
-;; props to edn TBD
-
-
 (defn contains-in?
   "checks whether the nested key exists in a map"
   [m k-path] 
