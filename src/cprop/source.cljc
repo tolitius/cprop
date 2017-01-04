@@ -69,7 +69,13 @@
 (defn- prop-key->path [k]
   (k->path k "_" #"\."))
 
-(defn- slurp-props-file
+(defn prop-seq [value]
+  (let [xs (s/split value #",")]
+    (if (> (count xs) 1)
+      (str xs)
+      value)))
+
+(defn slurp-props-file
   "mutable Properties to immutable map"
   [path]
   (let [ps (Properties.)]
@@ -77,11 +83,16 @@
          (.load ps))
     (into {} ps)))
 
-(defn read-props-file [path]
+(defn- read-props-file 
+  ([path]
+   (read-props-file true))
+  ([path parse-seqs?]
   (->> (slurp-props-file path)
        (map (fn [[k v]] [(prop-key->path k)
-                         (str->value v)]))
-       (into {})))
+                         (str->value (if parse-seqs?
+                                       (prop-seq v)
+                                       v))]))
+       (into {}))))
 
 
 (defn- sys->map [sys]
@@ -113,8 +124,10 @@
 (defn from-system-props []
   (sys->map (read-system-props)))
 
-(defn from-props-file [path]
-  (sys->map (read-props-file path)))
+(defn from-props-file [path & {:keys [parse-seqs?]
+                               :or {parse-seqs? true}}]
+  (sys->map (read-props-file path
+                             parse-seqs?)))
 
 (defn from-stream
   "load configuration from a resource that can be coerced into an input-stream"

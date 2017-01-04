@@ -1,6 +1,6 @@
 (ns cprop.test.core
   (:require [cprop.core :refer [load-config cursor]]
-            [cprop.source :refer [merge* from-stream from-file from-resource]]
+            [cprop.source :refer [merge* from-stream from-file from-resource from-props-file]]
             [clojure.edn :as edn]
             [clojure.test :refer :all]))
 
@@ -119,6 +119,40 @@
            config))
 
     (doseq [[k _] props] (System/clearProperty k))))
+
+(deftest should-merge-with-props-file
+  (let [config (load-config :file "dev-resources/fill-me-in.edn"
+                            :merge [(from-props-file "dev-resources/overrides.properties")])]
+
+    (is (= {:datomic
+            {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
+            :source
+            {:account
+             {:rabbit
+              {:host "localhost",
+               :port 5672,
+               :vhost "/z-broker",
+               :username "guest",
+               :password "guest"}}},
+            :answer 42,
+            :aws
+            {:access-key "super secret key",
+             :secret-key "super secret s3cr3t!!!",
+             :region "us-east-2",
+             :visiblity-timeout-sec 30,
+             :max-conn 50,
+             :queue "cprop-dev"},
+            :io
+            {:http
+             {:pool
+              {:socket-timeout 600000,
+               :conn-timeout 42,
+               :conn-req-timeout 600000,
+               :max-total 200,
+               :max-per-route 42}}},
+            :other-things ["1" "2" "3" "4" "5" "6" "7"]}
+
+           config))))
 
 (deftest should-merge-booleans
   (let [props {"datomic_url" "true"
