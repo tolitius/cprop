@@ -21,6 +21,8 @@ where all configuration properties converge
     - [Structure and keywords](#structure-and-keywords)
     - [Types](#types)
   - [Merging ENV example](#merging-env-example)
+- [Merging with property files](#merging-with-property-files)
+  - [Property files syntax](#property-files-syntax)
 - [Cursors](#cursors)
   - [Composable Cursors](#composable-cursors)
 - [Tools](#tools)
@@ -205,6 +207,7 @@ Everything of course composes together if needed:
                      (from-file "/path/to/another.edn")
                      (from-resource "path/within/classpath/to-another.edn")
                      (parse-runtime-args ...)
+                     (from-props-file "/path/to/some.properties")
                      (from-system-props)
                      (from-env)])
 ```
@@ -405,6 +408,154 @@ substituting [:other-things] with a ENV/system.property specific value
 ```
 
 notice that `cprop` also tells you wnenever a property is substituted.
+
+## Merging with property files
+
+It is important to be able to tntegrate with existing Java applications or simply with configurations that are done as `.properties` files, i.e. not EDN.
+
+`cprop` can easily convert `.properties` files into EDN maps and merge it on top of the existing configuration by using `(from-props-file path)` function. Here is an example:
+
+```clojure
+(require '[cprop.source :refer [from-props-file]])
+
+(load-config :merge [(from-props-file "path-to/overrides.properties")])
+```
+
+Which would merge:
+
+* `config.edn` as a classpath resource
+* with matching system properties 
+* with matching ENV variables
+* with "path-to/overrides.properties" file
+
+Here is an example. Let's say we have this config:
+
+```clojure
+{:datomic {:url "CHANGE ME"}
+
+ :aws {:access-key "AND ME"
+       :secret-key "ME TOO"
+       :region "FILL ME IN AS WELL"
+       :visiblity-timeout-sec 30
+       :max-conn 50
+       :queue "cprop-dev"}
+
+  :io {:http {:pool {:socket-timeout 600000
+                     :conn-timeout :I-SHOULD-BE-A-NUMBER
+                     :conn-req-timeout 600000
+                     :max-total 200
+                     :max-per-route :ME-ALSO}}}
+
+  :other-things ["I am a vector and also like to place the substitute game"]}
+```
+
+and this `path-to/overrides.properties`:
+
+```properties
+datomic.url=datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic
+
+source.account.rabbit.host=localhost
+
+aws.access-key=super secret key
+aws.secret_key=super secret s3cr3t!!!
+aws.region=us-east-2
+
+io.http.pool.conn_timeout=42
+io.http.pool.max_per_route=42
+
+other_things=1,2,3,4,5,6,7
+```
+
+We can apply the overrides with cprop as:
+
+```clojure
+(load-config :merge [(from-props-file "path-to/overrides.properties")])
+```
+
+which will merge them and will return:
+
+```clojure
+{:datomic
+ {:url
+  "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
+ :aws
+ {:access-key "super secret key",
+  :secret-key "super secret s3cr3t!!!",
+  :region "us-east-2",
+  :visiblity-timeout-sec 30,
+  :max-conn 50,
+  :queue "cprop-dev"},
+ :io
+ {:http
+  {:pool
+   {:socket-timeout 600000,
+    :conn-timeout 42,
+    :conn-req-timeout 600000,
+    :max-total 200,
+    :max-per-route 42}}},
+ :other-things ["1" "2" "3" "4" "5" "6" "7"]}
+```
+
+### Property files syntax
+
+The syntax of `.properties` files does not change. For example `.` means structure (i.e. `get-in`), `_` would be a key separator.
+
+For example let's take a `solar-system.properties` file:
+
+```properties
+## solar system components
+components=sun,planets,dwarf planets,moons,comets,asteroids,meteoroids,dust,atomic particles,electromagnetic.radiation,magnetic field
+
+star=sun
+
+## planets with Earth days to complete an orbit
+planet.mercury.orbit_days=87.969
+planet.venus.orbit_days=224.7
+planet.earth.orbit_days=365.2564
+planet.mars.orbit_days=686.93
+planet.jupiter.orbit_days=4332.59
+planet.saturn.orbit_days=10755.7
+planet.uran.orbit_days=30688.5
+planet.neptune.orbit_days=60148.35
+
+## planets natural satellites
+planet.earth.moons=moon
+planet.jupiter.moons=io,europa,ganymede,callisto
+planet.saturn.moons=titan
+planet.uran.moons=titania,oberon
+planet.neptune.moons=triton
+
+# favorite dwarf planet's moons
+dwarf.pluto.moons=charon,styx,nix,kerberos,hydra
+```
+
+```clojure
+(from-props-file "solar-system.properties")
+```
+
+will convert it to:
+
+```clojure
+{:components ["sun" "planets" "dwarf planets" "moons" "comets"
+              "asteroids" "meteoroids" "dust" "atomic particles"
+              "electromagnetic.radiation" "magnetic field"],
+ :star "sun",
+ :planet
+ {:uran {:moons ["titania" "oberon"],
+         :orbit-days 30688.5},
+  :saturn {:orbit-days 10755.7,
+           :moons "titan"},
+  :earth {:orbit-days 365.2564,
+          :moons "moon"},
+  :neptune {:moons "triton",
+            :orbit-days 60148.35},
+  :jupiter {:moons ["io" "europa" "ganymede" "callisto"],
+            :orbit-days 4332.59},
+  :mercury {:orbit-days 87.969},
+  :mars {:orbit-days 686.93},
+  :venus {:orbit-days 224.7}},
+ :dwarf {:pluto {:moons ["charon" "styx" "nix" "kerberos" "hydra"]}}}
+```
 
 ## Cursors
 
@@ -610,6 +761,38 @@ substituting [:other-things] with a ENV/system.property specific value
 
 The reason this is not on by default is merging ALL env and/or system properties with configs
 which is quite noisy and not very useful (i.e. can be hundreds of entries..).
+
+### Convert properties to unstructured map
+
+Besides the `from-props-file` function that converts `.properties` file to a map with hierarchy, there is also a `slurp-props-file` function that simply converts a property file to a map without parsing values or building a hierarchy:
+
+```clojure
+(require '[cprop.source :refer [slurp-props-file]])
+
+(slurp-props-file "solar-system.properties")
+```
+
+```properties
+{"star" "sun",
+
+ "planet.jupiter.moons" "io,europa,ganymede,callisto",
+ "planet.neptune.moons" "triton",
+ "planet.jupiter.orbit_days" "4332.59",
+ "planet.uran.orbit_days" "30688.5",
+ "planet.venus.orbit_days" "224.7",
+ "planet.earth.moons" "moon",
+ "planet.saturn.orbit_days" "10755.7",
+ "planet.mercury.orbit_days" "87.969",
+ "planet.saturn.moons" "titan",
+ "planet.earth.orbit_days" "365.2564",
+ "planet.uran.moons" "titania,oberon",
+ "planet.mars.orbit_days" "686.93",
+ "planet.neptune.orbit_days" "60148.35"
+
+ "dwarf.pluto.moons" "charon,styx,nix,kerberos,hydra",
+
+ "components" "sun,planets,dwarf planets,moons,comets,asteroids,meteoroids,dust,atomic particles,electromagnetic.radiation,magnetic field"}
+```
 
 ## License
 
