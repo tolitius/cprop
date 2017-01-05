@@ -32,6 +32,7 @@ where all configuration properties converge
 - [Tips](#tips)
   - [Setting the "conf" system property](#setting-the-conf-system-property)
   - [See what properties were substituted](#see-what-properties-were-substituted)
+  - [Convert properties to one level map](#convert-properties-to-a-one-level-map)
 
 ## Why
 
@@ -411,7 +412,7 @@ notice that `cprop` also tells you wnenever a property is substituted.
 
 ## Merging with property files
 
-It is important to be able to tntegrate with existing Java applications or simply with configurations that are done as `.properties` files, i.e. not EDN.
+It is important to be able to integrate with existing Java applications or simply with configurations that are done as `.properties` files, i.e. not EDN.
 
 `cprop` can easily convert `.properties` files into EDN maps and merge it on top of the existing configuration by using `(from-props-file path)` function. Here is an example:
 
@@ -449,7 +450,7 @@ Here is an example. Let's say we have this config:
   :other-things ["I am a vector and also like to place the substitute game"]}
 ```
 
-and this `path-to/overrides.properties`:
+and this `overrides.properties` file:
 
 ```properties
 datomic.url=datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic
@@ -469,15 +470,14 @@ other_things=1,2,3,4,5,6,7
 We can apply the overrides with cprop as:
 
 ```clojure
-(load-config :merge [(from-props-file "path-to/overrides.properties")])
+(load-config :merge [(from-props-file "overrides.properties")])
 ```
 
 which will merge them and will return:
 
 ```clojure
 {:datomic
- {:url
-  "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
+ {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
  :aws
  {:access-key "super secret key",
   :secret-key "super secret s3cr3t!!!",
@@ -498,7 +498,19 @@ which will merge them and will return:
 
 ### Property files syntax
 
-The syntax of `.properties` files does not change. For example `.` means structure (i.e. `get-in`), `_` would be a key separator.
+The traditional syntax of a `.properties` file does not change. For example:
+
+* `.` means structure
+
+`four.two=42` would be translated to `{:four {:two 42}}`
+
+* `_` would be a key separator
+
+`fourty_two=42` would be translated to `{:fourty-two 42}`
+
+* `,` in a value would be seq separator
+
+`planet.uran.moons=titania,oberon` would be translated to `{:planet {:uran {:moons ["titania" "oberon"]}}}`
 
 For example let's take a `solar-system.properties` file:
 
@@ -762,9 +774,9 @@ substituting [:other-things] with a ENV/system.property specific value
 The reason this is not on by default is merging ALL env and/or system properties with configs
 which is quite noisy and not very useful (i.e. can be hundreds of entries..).
 
-### Convert properties to unstructured map
+### Convert properties to a "one level" map
 
-Besides the `from-props-file` function that converts `.properties` file to a map with hierarchy, there is also a `slurp-props-file` function that simply converts a property file to a map without parsing values or building a hierarchy:
+Besides the `from-props-file` function that converts `.properties` file to a map _with hierarchy_, there is also a `slurp-props-file` function that simply converts a property file to a map without parsing values or building a hierarchy:
 
 ```clojure
 (require '[cprop.source :refer [slurp-props-file]])
@@ -796,7 +808,7 @@ Besides the `from-props-file` function that converts `.properties` file to a map
 
 ## License
 
-Copyright © 2016 tolitius
+Copyright © 2017 tolitius
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
