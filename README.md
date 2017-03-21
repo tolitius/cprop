@@ -729,19 +729,19 @@ export DATOMIC__URL=datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user
 
 There are several ways the `conf` property can be set:
 
-####command line
+#### command line
 
 ```clojure
 java -Dconf="../somepath/whatsapp.conf" -jar whatsapp.jar
 ```
 
-####boot
+#### boot
 
 ```clojure
 (System/setProperty "conf" "resources/config.edn")
 ```
 
-####lein
+#### lein
 
 ```clojure
 :profiles {:dev {:jvm-opts ["-Dconf=resources/config.edn"]}}
