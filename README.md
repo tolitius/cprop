@@ -73,7 +73,7 @@ and the result will be [merged with System properties](README.md#merging-with-sy
 and then [merged with ENV variables](README.md#merging-with-env-variables)
 for all the _matching_ properties.
 
-check out [cprop test](test/cprop/test/core.clj) to see `(load-config)` in action.
+check out [cprop test](test/cprop/test/core.cljc) to see `(load-config)` in action.
 
 ### Loading from "The Source"
 
