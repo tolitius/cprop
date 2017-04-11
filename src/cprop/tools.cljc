@@ -87,8 +87,13 @@
               (update-in am path (fn [k] "*******"))
               am)) m paths))
 
+(defn in-debug? []
+  (when-let [debug (System/getenv "DEBUG")]
+    (= (s/lower-case debug) "y")))
+
 (defn with-echo [config resource path]
-  (if-not (empty? config)
-    (println (str "read config from " resource ": \"" path "\""))
-    (println (str "(!) read config from " resource ": \"" path "\", but it is empty")))
+  (when (in-debug?)
+    (if-not (empty? config)
+      (println (str "read config from " resource ": \"" path "\""))
+      (println (str "(!) read config from " resource ": \"" path "\", but it is empty"))))
   config)

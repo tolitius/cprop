@@ -2,7 +2,7 @@
   (:require [clojure.edn :as edn]
             [clojure.string :as s]
             [clojure.java.io :as io]
-            [cprop.tools :refer [contains-in? with-echo]])
+            [cprop.tools :refer [contains-in? with-echo in-debug?]])
   (:import java.util.MissingResourceException
            java.io.PushbackReader
            java.io.StringReader
@@ -100,10 +100,6 @@
             (assoc-in m k-path v)) {} sys))
 
 ;; merge existing configuration with ENV, system properties
-
-(defn in-debug? []
-  (when-let [debug (System/getenv "DEBUG")]
-    (= (s/lower-case debug) "y")))
 
 (defn- substitute [m [k-path v]]
   (if (and (seq k-path) (contains-in? m k-path))
