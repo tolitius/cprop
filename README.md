@@ -31,7 +31,7 @@ where all configuration properties converge
     - [EDN to .env](#edn-to-env)
 - [Tips](#tips)
   - [Setting the "conf" system property](#setting-the-conf-system-property)
-  - [See what properties were substituted](#see-what-properties-were-substituted)
+  - [See which files were loaded and what properties were substituted](#see-which-files-were-loaded-what-properties-were-substituted)
   - [Convert properties to one level map](#convert-properties-to-a-one-level-map)
 
 ## Why
@@ -747,18 +747,23 @@ java -Dconf="../somepath/whatsapp.conf" -jar whatsapp.jar
 :profiles {:dev {:jvm-opts ["-Dconf=resources/config.edn"]}}
 ```
 
-### See what properties were substituted
+### See which files were loaded and what properties were substituted
 
-In order to see which properties were substituted by the cprop merge, export a DEBUG environment variable to `y` / `Y`:
+In order to see which files were read (and merged) and which properties were substituted by the cprop merge,
+export a DEBUG environment variable to `y` / `Y`:
 
 ```bash
 export DEBUG=y
 ```
 
-if this variable is exported, cprop won't keep substitutions a secret:
+if this variable is exported, cprop won't keep files and substitutions a secret:
 
 ```clojure
 user=> (load-config)
+read config from stream: "dev-resources/config.edn"    ;;
+read config from file: "dev-resources/config.edn"      ;; => a sample output
+read config from resource: "config.edn"                ;;
+
 substituting [:aws :region] with a ENV/system.property specific value
 substituting [:aws :secret-key] with a ENV/system.property specific value
 substituting [:io :http :pool :conn-timeout] with a ENV/system.property specific value
@@ -768,6 +773,8 @@ substituting [:aws :access-key] with a ENV/system.property specific value
 substituting [:other-things] with a ENV/system.property specific value
 ;; ...
 ```
+
+
 
 #### Why not default?
 
