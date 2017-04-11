@@ -31,7 +31,7 @@ where all configuration properties converge
     - [EDN to .env](#edn-to-env)
 - [Tips](#tips)
   - [Setting the "conf" system property](#setting-the-conf-system-property)
-  - [See which files were loaded and what properties were substituted](#see-which-files-were-loaded-what-properties-were-substituted)
+  - [See which files were loaded and what properties were substituted](#see-which-files-were-loaded-and-what-properties-were-substituted)
   - [Convert properties to one level map](#convert-properties-to-a-one-level-map)
 
 ## Why
