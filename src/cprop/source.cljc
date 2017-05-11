@@ -85,7 +85,7 @@
 
 (defn- read-props-file 
   ([path]
-   (read-props-file true))
+   (read-props-file path true))
   ([path parse-seqs?]
   (->> (slurp-props-file path)
        (map (fn [[k v]] [(prop-key->path k)
