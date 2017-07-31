@@ -1,5 +1,7 @@
 (ns cprop.tools
-  (:require [clojure.string :as s]))
+  (:require [clojure.string :as s])
+  (:import java.io.StringReader
+           java.util.Properties))
 
 (defn key->prop [k]
   (-> k 
@@ -65,6 +67,14 @@
    (map->env-file m {}))
   ([m opts]
    (map->x-file m map->env to-env opts)))
+
+(defn map->properties
+  "convert map to java.util.Properties preserving hierarchy"
+  [m]
+  (let [ps (Properties.)]
+    (->> (StringReader. (map->props-file m {:create? false}))
+         (.load ps))
+    ps))
 
 (defn contains-in?
   "checks whether the nested key exists in a map"
