@@ -35,14 +35,18 @@
    (.getAbsolutePath 
      (java.io.File/createTempFile fname ext))))
 
-(defn- map->x-file [{:keys [props-file] :as m} m->x prop->x]
-  (let [fpath (apply str (or (seq props-file) 
-                             (temp-file (str "cprops-" (System/currentTimeMillis) "-"))))
-        mprops (dissoc m :props-file)]
-    (spit fpath (reduce (fn [f prop]
-                          (str f (prop->x prop) "\n")) 
-                        "" (m->x mprops)))
-    fpath))
+(defn- map->x-file [m m->x prop->x {:keys [path create?]
+                                    :or {path (temp-file (str "cprops-" (System/currentTimeMillis) "-"))
+                                         create? true}}]
+  (let [fpath (apply str path)
+        x-file (reduce (fn [f prop]
+                         (str f (prop->x prop) "\n"))
+                       "" (m->x m))]
+    (if create?
+      (do
+        (spit fpath x-file)
+        fpath)
+      x-file)))
 
 (defn to-prop [[k v]]
   (str k "=" v))
@@ -50,11 +54,17 @@
 (defn to-env [[k v]]
   (str "export " k "=" v))
 
-(defn map->props-file [m]
-  (map->x-file m map->props to-prop))
+(defn map->props-file
+  ([m]
+   (map->props-file m {}))
+  ([m opts]
+   (map->x-file m map->props to-prop opts)))
 
-(defn map->env-file [m]
-  (map->x-file m map->env to-env))
+(defn map->env-file
+  ([m]
+   (map->env-file m {}))
+  ([m opts]
+   (map->x-file m map->env to-env opts)))
 
 (defn contains-in?
   "checks whether the nested key exists in a map"
