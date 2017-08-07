@@ -2,7 +2,7 @@
   (:require [clojure.edn :as edn]
             [clojure.string :as s]
             [clojure.java.io :as io]
-            [cprop.tools :refer [contains-in? with-echo in-debug?]])
+            [cprop.tools :refer [contains-in? expand-home with-echo in-debug?]])
   (:import java.util.MissingResourceException
            java.io.PushbackReader
            java.io.StringReader
@@ -143,7 +143,8 @@
   ([]
    (from-file (System/getProperty path-prop)))
   ([path]
-   (let [file (io/file path)]
+   (let [path (expand-home path)
+         file (io/file path)]
      (if (and file (.exists file))
        (try
          (with-echo (read-config file) "file" path)
