@@ -32,7 +32,7 @@
     (re-matches #"^(true|false)$" v) (Boolean/parseBoolean v)
     (re-matches #"\w+" v) v
     :else
-    (try 
+    (try
       (let [parsed (edn/read-string v)]
         (if (symbol? parsed)
           v
@@ -47,7 +47,7 @@
 
 (defn read-system-env []
   (->> (System/getenv)
-       (map (fn [[k v]] [(env->path k) 
+       (map (fn [[k v]] [(env->path k)
                          (str->value v)]))
        (into {})))
 
@@ -83,7 +83,7 @@
          (.load ps))
     (into {} ps)))
 
-(defn- read-props-file 
+(defn- read-props-file
   ([path]
    (read-props-file path true))
   ([path parse-seqs?]
@@ -174,7 +174,7 @@
 (defn ignore-missing-default
   "in case source is not given (i.e. is nil) and default source is missing, ignore the error, return an empty map"
   [f source]
-  (if source 
+  (if source
     (f source)  ;; if the source is given, don't ignore missing
     (try (f)
          (catch MissingResourceException mre

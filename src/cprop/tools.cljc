@@ -6,8 +6,8 @@
            java.util.Properties))
 
 (defn key->prop [k]
-  (-> k 
-      name 
+  (-> k
+      name
       (s/replace "-" "_")))
 
 (defn key->env [k]
@@ -19,7 +19,7 @@
     [(str from connect to) value]))
 
 (defn- map->flat [m key->x connect]
-  (reduce-kv (fn [path k v] 
+  (reduce-kv (fn [path k v]
                (if (map? v)
                  (concat (map (partial link connect (key->x k))
                               (map->flat v key->x connect))
@@ -33,10 +33,10 @@
 (defn- map->env [m]
   (map->flat m key->env "__"))
 
-(defn temp-file 
+(defn temp-file
   ([fname] (temp-file fname ".tmp"))
   ([fname ext]
-   (.getAbsolutePath 
+   (.getAbsolutePath
      (java.io.File/createTempFile fname ext))))
 
 (defn- map->x-file [m m->x prop->x {:keys [path create?]
@@ -80,7 +80,7 @@
 
 (defn contains-in?
   "checks whether the nested key exists in a map"
-  [m k-path] 
+  [m k-path]
   (let [one-before (get-in m (drop-last k-path))]
     (when (map? one-before)                        ;; in case k-path is "longer" than a map: {:a {:b {:c 42}}} => [:a :b :c :d]
       (contains? one-before (last k-path)))))

@@ -49,10 +49,10 @@
                          :file "dev-resources/fill-me-in.edn"))))
 
 (deftest with-merge
-  (is (= (load-config :resource "config.edn" 
+  (is (= (load-config :resource "config.edn"
                       :merge [{:source {:account {:rabbit {:port 4242}}}}])
          (assoc-in (load-config) [:source :account :rabbit :port] 4242)))
-  (is (= (load-config :file "dev-resources/config.edn" 
+  (is (= (load-config :file "dev-resources/config.edn"
                       :merge [{:source {:account {:rabbit {:port 4242}}}}
                               {:datomic {:url :foo}}])
          (assoc-in (assoc-in (load-config) [:source :account :rabbit :port] 4242)
@@ -171,12 +171,12 @@
     (doseq [[k _] props] (System/clearProperty k))))
 
 (deftest should-throw-on-resource-not-found
-  (is (thrown-with-msg? java.util.MissingResourceException 
+  (is (thrown-with-msg? java.util.MissingResourceException
                         #"resource \"empty\" not found on the resource path"
                         (load-config :resource "empty"))))
 
 (deftest should-throw-on-file-not-found
-  (is (thrown-with-msg? java.util.MissingResourceException 
+  (is (thrown-with-msg? java.util.MissingResourceException
                         #"can't find a configuration file path: \"not-here\". besides providing it via \"\(load-config :file <path>\)\", it could also be set via \"conf\" system property \(i.e. -Dconf=<path>\)"
                         (load-config :resource "empty.edn" :file "not-here"))))
 
