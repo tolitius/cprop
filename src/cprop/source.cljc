@@ -13,6 +13,7 @@
 
 (defn read-config [input]
   (edn/read-string
+    {:readers *data-readers*}
     (slurp input)))
 
 (defn- k->path [k dash level]
@@ -33,7 +34,7 @@
     (re-matches #"\w+" v) v
     :else
     (try
-      (let [parsed (edn/read-string v)]
+      (let [parsed (edn/read-string {:readers *data-readers*} v)]
         (if (symbol? parsed)
           v
           parsed))
