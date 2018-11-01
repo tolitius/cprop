@@ -2,6 +2,7 @@
 
 where all configuration properties converge
 
+[![<! build-status](https://travis-ci.org/tolitius/cprop.svg?branch=master)](https://travis-ci.org/tolitius/cprop)
 [![<! release](https://img.shields.io/badge/dynamic/json.svg?label=release&url=https%3A%2F%2Fclojars.org%2Fcprop%2Flatest-version.json&query=version&colorB=blue)](https://github.com/tolitius/cprop/releases)
 [![<! clojars](https://img.shields.io/clojars/v/cprop.svg)](https://clojars.org/cprop)
 
@@ -817,7 +818,7 @@ Besides the `from-props-file` function that converts `.properties` file to a map
 
 ## License
 
-Copyright © 2017 tolitius
+Copyright © 2018 tolitius
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
