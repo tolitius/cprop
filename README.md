@@ -2,8 +2,10 @@
 
 where all configuration properties converge
 
-[![Clojars Project](https://clojars.org/cprop/latest-version.svg)](http://clojars.org/cprop)
-> <img src="doc/img/slack-icon.png" width="30px"> _any_ questions or feedback: [`#mount`](https://clojurians.slack.com/messages/mount/) clojurians slack channel (or just [open an issue](https://github.com/tolitius/cprop/issues))
+[![<! release](https://img.shields.io/badge/dynamic/json.svg?label=release&url=https%3A%2F%2Fclojars.org%2Fcprop%2Flatest-version.json&query=version&colorB=blue)](https://github.com/tolitius/cprop/releases)
+[![<! clojars](https://img.shields.io/clojars/v/cprop.svg)](https://clojars.org/cprop)
+
+###### _any_ questions or feedback: [clojurians slack](https://clojurians.slack.com/messages/clojure/) <img src="doc/img/slack-icon.png" width="15px"> (or just [open an issue](https://github.com/tolitius/cprop/issues))
 
 - [Why](#why)
 - [What does cprop do?](#what-does-cprop-do)
