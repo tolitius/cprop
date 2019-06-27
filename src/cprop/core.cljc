@@ -13,14 +13,15 @@
 ;;              :file "/path/to/file.edn"
 ;;              :merge [{} {} {} ..])
 (defn load-config [& {:keys [file resource merge]
-                      :or {merge []}}]
+                      :or {merge []}
+                      :as opts}]
   (let [config (merge-maps (ignore-missing-default from-resource resource)
                            (ignore-missing-default from-file file))]
     (if (not-empty config)
       (as-> config $
             (apply merge-maps (cons $ merge))
-            (merge* $ (read-system-props))
-            (merge* $ (read-system-env)))
+            (merge* $ (read-system-props opts))
+            (merge* $ (read-system-env opts)))
       (throw (RuntimeException. (str "could not find a non empty configuration file to load. "
                                      "looked in the classpath (as a \"resource\") "
                                      "and on a file system via \"conf\" system property"))))))
