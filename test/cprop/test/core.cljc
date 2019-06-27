@@ -1,7 +1,8 @@
 (ns cprop.test.core
   (:require [cprop.core :refer [load-config cursor]]
-            [cprop.source :refer [merge* from-stream from-file from-resource from-props-file]]
+            [cprop.source :refer [merge* from-stream from-file from-resource from-props-file from-env from-system-props]]
             [clojure.edn :as edn]
+            [clojure.pprint :as pp]
             [clojure.test :refer :all]))
 
 (deftest should-slurp-and-provide
@@ -27,16 +28,17 @@
     (let [c (load-config)]
       (is (= ((cursor c (cursor c (cursor c :source) :account) :rabbit) :vhost) "/z-broker")))))
 
-(defn- read-test-env []
+(defn- read-test-env [opts]
   (->> {"DATOMIC__URL" "\"datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic\""
         "AWS__ACCESS_KEY" "\"AKIAIOSFODNN7EXAMPLE\""
         "AWS__SECRET_KEY" "\"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\""
         "AWS__REGION" "\"ues-east-1\""
         "IO__HTTP__POOL__CONN_TIMEOUT" "60000"
         "IO__HTTP__POOL__MAX_PER_ROUTE" "10"
-        "OTHER_THINGS" "[1 2 3 \"42\"]"}
+        "OTHER_THINGS" "[1 2 3 \"42\"]"
+        "SOME_DATE" "7 Nov 22:44:53 2015"}
        (map (fn [[k v]] [(#'cprop.source/env->path k)
-                         (#'cprop.source/str->value v)]))
+                         (#'cprop.source/str->value v opts)]))
        (into {})))
 
 (deftest from-source
@@ -68,7 +70,8 @@
 (deftest should-merge-with-env
   (let [config (edn/read-string
                  (slurp "dev-resources/fill-me-in.edn"))
-        merged (merge* config (read-test-env))]
+        merged (merge* config (read-test-env {}))
+        merged-as-is (merge* config (read-test-env {:as-is? true}))]
 
     (is (= {:datomic {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
             :aws {:access-key "AKIAIOSFODNN7EXAMPLE",
@@ -85,9 +88,31 @@
                :conn-req-timeout 600000,
                :max-total 200,
                :max-per-route 10}}},
-            :other-things [1 2 3 "42"]}
+            :other-things [1 2 3 "42"]
+            :some-date 7}  ;; incorrectly parsed substitution (i.e. should have been "7 Nov 22:44:53 2015")
+                           ;; next assertion corrects that
+           merged))
 
-           merged))))
+    ;; comparing as-is (i.e. parsed all params as strings)
+    (is (= {:datomic {:url "\"datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic\""},
+            :aws {:access-key "\"AKIAIOSFODNN7EXAMPLE\"",
+                  :secret-key "\"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\"",
+                  :region "\"ues-east-1\"",
+                  :visiblity-timeout-sec 30, ;; the non strings come directly from internal config
+                  :max-conn 50,
+                  :queue "cprop-dev"},
+            :io
+            {:http
+             {:pool
+              {:socket-timeout 600000,
+               :conn-timeout "60000",
+               :conn-req-timeout 600000,
+               :max-total 200,
+               :max-per-route "10"}}},
+            :other-things "[1 2 3 \"42\"]"
+            :some-date "7 Nov 22:44:53 2015"}
+
+           merged-as-is))))
 
 (deftest should-merge-with-sys-props
   (let [props {"datomic_url" "sys-url"
@@ -113,8 +138,8 @@
                :conn-req-timeout 600000,
                :max-total 200,
                :max-per-route :ME-ALSO}}},
-            :other-things
-            ["I am a vector and also like to place the substitute game"]}
+            :other-things ["I am a vector and also like to place the substitute game"]
+            :some-date "so/me/date"}
 
            config))
 
@@ -150,7 +175,8 @@
                :conn-req-timeout 600000,
                :max-total 200,
                :max-per-route 42}}},
-            :other-things ["1" "2" "3" "4" "5" "6" "7"]}
+            :other-things ["1" "2" "3" "4" "5" "6" "7"]
+            :some-date "so/me/date"}
 
            config))))
 
@@ -170,10 +196,61 @@
     (is (string? (get-in config [:io :http :pool :max-total])))
     (doseq [[k _] props] (System/clearProperty k))))
 
-(deftest should-throw-on-resource-not-found
-  (is (thrown-with-msg? java.util.MissingResourceException
-                        #"resource \"empty\" not found on the resource path"
-                        (load-config :resource "empty"))))
+(deftest should-read-system-props []
+  (let [ps        {"datomic_url" "sys-url"
+                   "aws_access.key" "sys-key"
+                   "io_http_pool_socket.timeout" "4242"}
+        _            (doseq [[k v] ps]
+                       (System/setProperty k v))
+        props        (from-system-props)
+        props-as-is  (from-system-props {:as-is? true})]
+
+    (is (= {:http {:pool {:socket-timeout 4242}}}
+           (props :io)))
+    (is (= {:access-key "sys-key"}
+           (props :aws)))
+    (is (= {:url "sys-url"}
+           (props :datomic)))
+
+    ;; as-is: i.e. parse as strings
+    (is (= {:http {:pool {:socket-timeout "4242"}}}
+           (props-as-is :io)))
+    (is (= {:access-key "sys-key"}
+           (props-as-is :aws)))
+    (is (= {:url "sys-url"}
+           (props-as-is :datomic)))
+
+    (doseq [[k _] ps]
+      (System/clearProperty k))))
+
+(deftest should-read-from-props-file []
+  (let [ps (from-props-file "dev-resources/overrides.properties")
+        ps-as-is (from-props-file "dev-resources/overrides.properties" {:as-is? true})]
+
+    (is (= {:aws
+            {:region "us-east-2",
+             :secret-key "super secret s3cr3t!!!",
+             :access-key "super secret key"},
+            :other-things ["1" "2" "3" "4" "5" "6" "7"],
+            :io {:http {:pool {:conn-timeout 42, :max-per-route 42}}},
+            :source {:account {:rabbit {:host "localhost"}}},
+            :datomic
+            {:url
+             "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}}
+           ps))
+
+    ;; as-is: i.e. read all prop values as strings
+    (is (= {:aws
+            {:region "us-east-2",
+             :secret-key "super secret s3cr3t!!!",
+             :access-key "super secret key"},
+            :other-things "[\"1\" \"2\" \"3\" \"4\" \"5\" \"6\" \"7\"]",
+            :io {:http {:pool {:conn-timeout "42", :max-per-route "42"}}},
+            :source {:account {:rabbit {:host "localhost"}}},
+            :datomic
+            {:url
+             "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}}
+           ps-as-is))))
 
 (deftest should-throw-on-file-not-found
   (is (thrown-with-msg? java.util.MissingResourceException

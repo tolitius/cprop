@@ -24,11 +24,12 @@
                    #(s/replace % dash "-"))
              $)))
 
-(defn- str->value [v]
+(defn- str->value [v {:keys [as-is?]}]
   "ENV vars and system properties are strings. str->value will convert:
   the numbers to longs, the alphanumeric values to strings, and will use Clojure reader for the rest
   in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
   (cond
+    as-is? v
     (re-matches #"[0-9]+" v) (Long/parseLong v)
     (re-matches #"^(true|false)$" v) (Boolean/parseBoolean v)
     (re-matches #"\w+" v) v
@@ -46,11 +47,14 @@
 (defn- env->path [k]
   (k->path k "_" #"__"))
 
-(defn read-system-env []
-  (->> (System/getenv)
-       (map (fn [[k v]] [(env->path k)
-                         (str->value v)]))
-       (into {})))
+(defn read-system-env
+  ([]
+   (read-system-env {}))
+  ([opts]
+   (->> (System/getenv)
+        (map (fn [[k v]] [(env->path k)
+                          (str->value v opts)]))
+        (into {}))))
 
 ;; System properties
 
@@ -59,11 +63,14 @@
 (defn- sysprop->path [k]
   (k->path k "." #"_"))
 
-(defn read-system-props []
-  (->> (System/getProperties)
-       (map (fn [[k v]] [(sysprop->path k)
-                         (str->value v)]))
-       (into {})))
+(defn read-system-props
+  ([]
+   (read-system-props {}))
+  ([opts]
+   (->> (System/getProperties)
+        (map (fn [[k v]] [(sysprop->path k)
+                          (str->value v opts)]))
+        (into {}))))
 
 ;; .properties files
 
@@ -86,13 +93,14 @@
 
 (defn- read-props-file
   ([path]
-   (read-props-file path true))
-  ([path parse-seqs?]
+   (read-props-file path {}))
+  ([path {:keys [parse-seqs?] :as opts}]
   (->> (slurp-props-file path)
        (map (fn [[k v]] [(prop-key->path k)
-                         (str->value (if parse-seqs?
+                         (str->value (if-not (false? parse-seqs?) ;; could be nil, which is true in this case
                                        (prop-seq v)
-                                       v))]))
+                                       v)
+                                     opts)]))
        (into {}))))
 
 
@@ -115,16 +123,23 @@
 
 ;; sources
 
-(defn from-env []
-  (sys->map (read-system-env)))
+(defn from-env
+  ([]
+   (from-env {}))
+  ([opts]
+   (sys->map (read-system-env opts))))
 
-(defn from-system-props []
-  (sys->map (read-system-props)))
+(defn from-system-props
+  ([]
+   (from-system-props {}))
+  ([opts]
+   (sys->map (read-system-props opts))))
 
-(defn from-props-file [path & {:keys [parse-seqs?]
-                               :or {parse-seqs? true}}]
-  (sys->map (read-props-file path
-                             parse-seqs?)))
+(defn from-props-file
+  ([path]
+   (from-props-file path {}))
+  ([path opts]
+   (sys->map (read-props-file path opts))))
 
 (defn from-stream
   "load configuration from a resource that can be coerced into an input-stream"

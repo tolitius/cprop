@@ -13,4 +13,5 @@
                      :max-total 200
                      :max-per-route :ME-ALSO}}}
 
-  :other-things ["I am a vector and also like to place the substitute game"]}
+  :other-things ["I am a vector and also like to place the substitute game"]
+  :some-date "so/me/date"}
