@@ -26,6 +26,7 @@ where all configuration properties converge
   - [Merging ENV example](#merging-env-example)
 - [Merging with property files](#merging-with-property-files)
   - [Property files syntax](#property-files-syntax)
+- [Read "as is" (not EDN)](#read-as-is-not-edn)
 - [Cursors](#cursors)
   - [Composable Cursors](#composable-cursors)
 - [Tools](#tools)
@@ -39,9 +40,9 @@ where all configuration properties converge
 
 ## Why
 
-there are several env/config ways, libraries. 
+there are several env/config ways, libraries.
 
-* some are _solely_ based on ENV variables exported as individual properties: 100 properties? 100 env variables exported.. 
+* some are _solely_ based on ENV variables exported as individual properties: 100 properties? 100 env variables exported..
 * some rely on a property file within the classpath: all good, but requires wrestling with uberjar (META-INF and friends)
 * some allow _only_ string values: no data structures, no numbers, etc.? (I love my data structures and the power of EDN)
 * some allow no structure / hierarchy, just one (top) level pile of properties
@@ -49,7 +50,7 @@ there are several env/config ways, libraries.
 
 ## What does cprop do?
 
-* loads an [EDN](https://github.com/edn-format/edn) config from a classpath and/or file system 
+* loads an [EDN](https://github.com/edn-format/edn) config from a classpath and/or file system
 * merges it with system properties and ENV variables + the optional merge from sources (file, db, mqtt, http, etc.)
 * returns an (immutable) map
 * while keeping _no internal state_ => different configs could be used within the same app, i.e. for app sub modules
@@ -104,7 +105,7 @@ as in the case with defaults, file system properties would override matching cla
 `(load-config)` function returns a Clojure map, while you can create [cursors](README.md#cursors), working with a config is no different than just working with a map:
 
 ```clojure
-{:datomic 
+{:datomic
     {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}
  :source
     {:account
@@ -143,7 +144,7 @@ By default `cprop` will merge all configurations it can find in the following or
 For `#3` `(load-config)` optionally takes a sequence of maps (via `:merge`) that will be merged _after_ the defaults and in the specified sequence:
 
 ```clojure
-(load-config :merge [{:datomic {:url "foo.bar"}} 
+(load-config :merge [{:datomic {:url "foo.bar"}}
                      {:some {:other {:property :to-merge}}}])
 ```
 
@@ -157,7 +158,7 @@ Since `:merge` just takes maps it is quite flexible:
 ```
 
 ```clojure
-(load-config :merge [{:datomic {:url "foo.bar"}} 
+(load-config :merge [{:datomic {:url "foo.bar"}}
                      (from-file "/path/to/another.edn")
                      (from-resource "path/within/classpath/to.edn")
                      {:datomic {:url "this.will.win"}} ])
@@ -171,7 +172,7 @@ And of course `:merge` well composes with `:resource` and `:file`:
 ```clojure
 (load-config :resource "path/within/classpath/to.edn"
              :file "/path/to/some.edn"
-             :merge [{:datomic {:url "foo.bar"}} 
+             :merge [{:datomic {:url "foo.bar"}}
                      (from-file "/path/to/another.edn")
                      (from-resource "path/within/classpath/to-another.edn")
                      (parse-runtime-args ...)])
@@ -207,7 +208,7 @@ Everything of course composes together if needed:
 ```clojure
 (load-config :resource "path/within/classpath/to.edn"
              :file "/path/to/some.edn"
-             :merge [{:datomic {:url "foo.bar"}} 
+             :merge [{:datomic {:url "foo.bar"}}
                      (from-file "/path/to/another.edn")
                      (from-resource "path/within/classpath/to-another.edn")
                      (parse-runtime-args ...)
@@ -428,7 +429,7 @@ It is important to be able to integrate with existing Java applications or simpl
 Which would merge:
 
 * `config.edn` as a classpath resource
-* with matching system properties 
+* with matching system properties
 * with matching ENV variables
 * with "path-to/overrides.properties" file
 
@@ -572,6 +573,62 @@ will convert it to:
  :dwarf {:pluto {:moons ["charon" "styx" "nix" "kerberos" "hydra"]}}}
 ```
 
+## Read "as is" (not EDN)
+
+Not all configs and properties come in EDN format, and some of these not EDN properties / env variables can't be read with Clojure's EDN reader, for example:
+
+```clojure
+=> (require '[clojure.edn :as edn])
+
+=> (edn/read-string "7 Nov 22:44:53 2015")
+7
+```
+also:
+```clojure
+boot.user=> (edn/read-string "7Nov 22:44:53 2015")
+java.lang.NumberFormatException: Invalid number: 7Nov
+```
+
+and imagine if this `7 Nov 22:44:53 2015` is an ENV variable that you can't change, but still need to be able to use. For cases like these you can use an `:as-is` flag to communicate to cprop to treat properties/vars "as is", in other words take them as they come and don't try to convert them into anything.
+
+`:as-is?` optional param is available on all the source (`from-env`, `from-system-props`, `from-props-file`, etc.) functions which will read props/vars as is:
+
+```bash
+$ export FOO='"4242"'
+$ export BAR=4242
+$ export DATE='7 Nov 22:44:53 2015'
+$ export VEC='[1 2 3 4]'
+```
+```clojure
+=> (require '[cprop.source :as s])
+
+=> (:foo (s/from-env))
+"4242"
+=> (:bar (s/from-env))
+4242
+=> (:date (s/from-env))
+7                                     ;; uh.. that's bad
+=> (:vec (s/from-env))
+[1 2 3 4]
+```
+but
+```clojure
+=> (:foo (s/from-env {:as-is? true}))
+"\"4242\""
+=> (:bar (s/from-env {:as-is? true}))
+"4242"
+=> (:date (s/from-env {:as-is? true}))
+"7 Nov 22:44:53 2015"                  ;; that's good
+=> (:vec (s/from-env {:as-is? true}))
+"[1 2 3 4]"
+```
+
+If you need _ALL_ the properties and configs to come in "as is" (not as EDN) `:as-is` flag is also available at the top level:
+
+```clojure
+(load-config :as-is? true)
+```
+
 ## Cursors
 
 It would be somewhat inconvenient to repeat `[:source :account :rabbit :prop]` over and over in different pieces of the code that need rabbit values.
@@ -584,7 +641,7 @@ That's where the cursors help a lot:
 ```clojure
 (def conf (load-config))
 
-(def rabbit 
+(def rabbit
   (cursor conf :source :account :rabbit))
 
 (rabbit :vhost) ;; "/z-broker"
@@ -599,7 +656,7 @@ In case you pass a cursor somewhere, you can still build new cursors out of it b
 working with the same config as in the example above:
 
 ```clojure
-{:datomic 
+{:datomic
     {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}
  :source
     {:account
@@ -818,7 +875,7 @@ Besides the `from-props-file` function that converts `.properties` file to a map
 
 ## License
 
-Copyright © 2018 tolitius
+Copyright © 2019 tolitius
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
