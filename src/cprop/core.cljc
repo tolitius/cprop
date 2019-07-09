@@ -1,7 +1,7 @@
 (ns cprop.core
   (:require [clojure.string :as s]
             [clojure.edn :as edn]
-            [cprop.tools :refer [merge-maps]]
+            [cprop.tools :as t]
             [cprop.source :refer [merge*
                                   read-system-env
                                   read-system-props
@@ -12,16 +12,17 @@
 ;; (load-config :resource "a/b/c.edn"
 ;;              :file "/path/to/file.edn"
 ;;              :merge [{} {} {} ..])
-(defn load-config [& {:keys [file resource merge]
+(defn load-config [& {:keys [file resource merge override-with]
                       :or {merge []}
                       :as opts}]
-  (let [config (merge-maps (ignore-missing-default from-resource resource)
-                           (ignore-missing-default from-file file))]
+  (let [config (t/merge-maps (ignore-missing-default from-resource resource)
+                             (ignore-missing-default from-file file))]
     (if (not-empty config)
       (as-> config $
-            (apply merge-maps (cons $ merge))
+            (apply t/merge-maps (cons $ merge))
             (merge* $ (read-system-props opts))
-            (merge* $ (read-system-env opts)))
+            (merge* $ (read-system-env opts))
+            (merge* $ (t/flatten-keys override-with)))
       (throw (RuntimeException. (str "could not find a non empty configuration file to load. "
                                      "looked in the classpath (as a \"resource\") "
                                      "and on a file system via \"conf\" system property"))))))

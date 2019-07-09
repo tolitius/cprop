@@ -148,3 +148,17 @@
           (home (subs path 1))
           (io/file (home (subs path 1 sep)) (subs path (inc sep)))))
       (io/file path))))
+
+;; flatten-keys* belongs to Jay Fields: http://blog.jayfields.com/2010/09/clojure-flatten-keys.html
+
+(defn- flatten-keys* [a ks m]
+  (if (map? m)
+    (reduce into (map (fn [[k v]]
+                        (flatten-keys* a (conj ks k) v))
+                      (seq m)))
+    (assoc a ks m)))
+
+(defn flatten-keys [m]
+  (when (seq m)
+    (flatten-keys* {} [] m)))
+
