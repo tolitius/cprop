@@ -16,6 +16,7 @@ where all configuration properties converge
 - [Using properties](#using-properties)
 - [Merging Configurations](#merging-configurations)
   - [Merging with all System and ENV](#merging-with-all-system-and-env)
+  - [Override all configs](#override-all-configs)  
 - [Merging with system properties](#merging-with-system-properties)
   - [System properties cprop syntax](#system-properties-cprop-syntax)
 - [Merging with ENV variables](#merging-with-env-variables)
@@ -221,6 +222,28 @@ It can get as creative as needed, but.. _this should cover most cases_:
 
 ```clojure
 (load-config)
+```
+
+### Override all configs
+
+cprop merges _matching_ properties and ENV variables by default. In order to override that, or any other configs, properties or ENV variables `load-congfig` function takes an optional `:override-with` argument with a map that will override any matching (top level or however deeply nested) properties. If provided, this would be the last merge step applied after "all":
+
+```bash
+$ export DATOMIC__URL=foo
+```
+
+```clojure
+=> (load-config))
+{:datomic {:url "foo"},
+ :source ... }
+```
+
+but could be overriden with:
+
+```clojure
+=> (load-config :override-with {:datomic {:url "bar"}})
+{:datomic {:url "bar"},
+ :source ... }
 ```
 
 ## Merging with system properties
