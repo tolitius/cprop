@@ -233,7 +233,7 @@ $ export DATOMIC__URL=foo
 ```
 
 ```clojure
-=> (load-config))
+=> (load-config)
 {:datomic {:url "foo"},
  :source ... }
 ```
