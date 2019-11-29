@@ -100,8 +100,13 @@
         (apply f maps)))
     maps))
 
-(defn merge-maps [& m]
-  (apply deep-merge-with (fn [_ v] v) m))
+(defn merge-maps
+  "remove top level nils and call out to deep-merge-with
+   with a merge function that given two values where one of them is not map
+   would use the latest (the one on the right) as a 'merged' value."
+  [& m]
+  (->> (remove nil? m)
+       (apply deep-merge-with (fn [_ v] v))))
 
 (defn cloak [m & paths]
   (reduce (fn [am path]

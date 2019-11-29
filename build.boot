@@ -2,7 +2,7 @@
 
 (set-env!
   :source-paths #{"src"}
-  :dependencies '[[org.clojure/clojure      "1.8.0"]
+  :dependencies '[[org.clojure/clojure      "1.10.1"]
 
                   ;; boot clj
                   [boot/core                "2.7.1"           :scope "provided"]

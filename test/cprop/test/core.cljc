@@ -261,3 +261,14 @@
   (is (thrown-with-msg? java.lang.RuntimeException
                         #"could not find a non empty configuration file to load. looked in the classpath \(as a \"resource\"\) and on a file system via \"conf\" system property"
                         (load-config :resource "empty.edn" :file "dev-resources/empty.edn"))))
+
+(deftest should-ignore-top-level-nils-on-merge
+  (testing "should ignore top level nils with merging config with other sources"
+    (let [with-vector-nil (load-config :merge [nil])
+          with-nil (load-config :merge nil)
+          with-nil-and-friends (load-config :merge [nil {} nil {} {}])
+          c (load-config)]
+      (is (= c
+             with-nil
+             with-vector-nil
+             with-nil-and-friends)))))
