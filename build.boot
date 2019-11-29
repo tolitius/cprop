@@ -8,7 +8,7 @@
                   [boot/core                "2.7.1"           :scope "provided"]
                   [adzerk/bootlaces         "0.1.13"          :scope "test"]
                   [adzerk/boot-test         "1.0.6"           :scope "test"]
-                  [tolitius/boot-check      "0.1.1"           :scope "test"]])
+                  [tolitius/boot-check      "0.1.13"          :scope "test"]])
 
 (require '[adzerk.bootlaces :refer :all]
          '[tolitius.boot-check :as check]

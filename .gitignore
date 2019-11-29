@@ -17,3 +17,4 @@ figwheel_server.log
 out/
 *.ipr
 *.iws
+.eastwood
