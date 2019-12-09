@@ -24,13 +24,20 @@
                    #(s/replace % dash "-"))
              $)))
 
+(defn- str->num [s]
+  "Convert numeric string into `java.lang.Long` or `clojure.lang.BigInt`"
+  (try
+    (Long/parseLong s)
+    (catch NumberFormatException _
+      (bigint s))))
+
 (defn- str->value [v {:keys [as-is?]}]
   "ENV vars and system properties are strings. str->value will convert:
   the numbers to longs, the alphanumeric values to strings, and will use Clojure reader for the rest
   in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
   (cond
     as-is? v
-    (re-matches #"[0-9]+" v) (Long/parseLong v)
+    (re-matches #"[0-9]+" v) (str->num v)
     (re-matches #"^(true|false)$" v) (Boolean/parseBoolean v)
     (re-matches #"\w+" v) v
     :else

@@ -36,6 +36,7 @@
         "IO__HTTP__POOL__CONN_TIMEOUT" "60000"
         "IO__HTTP__POOL__MAX_PER_ROUTE" "10"
         "OTHER_THINGS" "[1 2 3 \"42\"]"
+        "SOME_BIG_INT" "10000000000000000000"
         "SOME_DATE" "7 Nov 22:44:53 2015"}
        (map (fn [[k v]] [(#'cprop.source/env->path k)
                          (#'cprop.source/str->value v opts)]))
@@ -89,6 +90,7 @@
                :max-total 200,
                :max-per-route 10}}},
             :other-things [1 2 3 "42"]
+            :some-big-int 10000000000000000000N
             :some-date 7}  ;; incorrectly parsed substitution (i.e. should have been "7 Nov 22:44:53 2015")
                            ;; next assertion corrects that
            merged))
@@ -110,6 +112,7 @@
                :max-total 200,
                :max-per-route "10"}}},
             :other-things "[1 2 3 \"42\"]"
+            :some-big-int "10000000000000000000"
             :some-date "7 Nov 22:44:53 2015"}
 
            merged-as-is))))
@@ -139,6 +142,7 @@
                :max-total 200,
                :max-per-route :ME-ALSO}}},
             :other-things ["I am a vector and also like to place the substitute game"]
+            :some-big-int :I-SHOULD-BE-A-BIG-INT
             :some-date "so/me/date"}
 
            config))
@@ -176,6 +180,7 @@
                :max-total 200,
                :max-per-route 42}}},
             :other-things ["1" "2" "3" "4" "5" "6" "7"]
+            :some-big-int :I-SHOULD-BE-A-BIG-INT
             :some-date "so/me/date"}
 
            config))))
