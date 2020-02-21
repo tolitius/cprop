@@ -1,6 +1,7 @@
 (ns cprop.test.core
   (:require [cprop.core :refer [load-config cursor]]
-            [cprop.source :refer [assoc-in-parser merge* from-stream from-file from-resource from-props-file from-env from-system-props]]
+            [cprop.source :refer [merge* from-stream from-file from-resource from-props-file from-env from-system-props]]
+            [cprop.tools :as tools]
             [clojure.edn :as edn]
             [clojure.pprint :as pp]
             [clojure.test :refer :all]))
@@ -74,7 +75,7 @@
                  (slurp "dev-resources/fill-me-in.edn"))
         merged (merge* config (read-test-env {}))
         merged-as-is (merge* config (read-test-env {:as-is? true}))
-        merged-with-custom-parser (merge* config (read-test-env {:parse-fn assoc-in-parser}))]
+        merged-with-custom-parser (merge* config (read-test-env {:key-parse-fn tools/parse-num-keys}))]
 
     (testing "normal parsing"
       (is (= {:datomic {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
@@ -249,7 +250,7 @@
         props        (from-system-props)
         props-as-is  (from-system-props {:as-is? true})
         props-with-custom-parser (from-system-props
-                                  {:parse-fn #(case %
+                                  {:key-parse-fn #(case %
                                                 "aname" :parsed
                                                 (keyword %))})]
     (testing "normal parsing"
@@ -289,7 +290,7 @@
   (let [ps (from-props-file "dev-resources/overrides.properties")
         ps-as-is (from-props-file "dev-resources/overrides.properties" {:as-is? true})
         ps-with-custom-parser (from-props-file "dev-resources/overrides.properties"
-                                               {:parse-fn #(case %
+                                               {:key-parse-fn #(case %
                                                              "aname" :parsed
                                                              (keyword %))})]
 

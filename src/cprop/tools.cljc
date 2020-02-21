@@ -167,3 +167,9 @@
   (when (seq m)
     (flatten-keys* {} [] m)))
 
+(defn parse-num-keys
+  "Key-part parser that parses keywords and integerss"
+  [part]
+  (if (re-matches #"\d+" part)
+    (str->num part)
+    (keyword part)))

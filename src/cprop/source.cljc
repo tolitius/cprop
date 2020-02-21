@@ -20,14 +20,14 @@
   "Parses the given key by splitting on `level` and replacing `dash` with `-`.
 
   Options:
-    :parse-fn - func that will be called on each part of the split key. Defaults
+    :key-parse-fn - func that will be called on each part of the split key. Defaults
                to `keyword`."
-  [k dash level {:keys [parse-fn]
-                 :or {parse-fn keyword}}]
+  [k dash level {:keys [key-parse-fn]
+                 :or {key-parse-fn keyword}}]
   (as-> k $
     (s/lower-case $)
     (s/split $ level)
-    (map (comp parse-fn #(s/replace % dash "-")) $)))
+    (map (comp key-parse-fn #(s/replace % dash "-")) $)))
 
 (defn- str->num [s]
   "Convert numeric string into `java.lang.Long` or `clojure.lang.BigInt`"
@@ -35,13 +35,6 @@
     (Long/parseLong s)
     (catch NumberFormatException _
       (bigint s))))
-
-(defn assoc-in-parser
-  "Key-part parser that mimics `assoc-in`'s behavior."
-  [part]
-  (if (re-matches #"\d+" part)
-    (str->num part)
-    (keyword part)))
 
 (defn- str->value [v {:keys [as-is?]}]
   "ENV vars and system properties are strings. str->value will convert:
