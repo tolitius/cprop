@@ -1,6 +1,6 @@
 (ns cprop.test.core
   (:require [cprop.core :refer [load-config cursor]]
-            [cprop.source :refer [merge* from-stream from-file from-resource from-props-file from-env from-system-props]]
+            [cprop.source :refer [assoc-in-parser merge* from-stream from-file from-resource from-props-file from-env from-system-props]]
             [clojure.edn :as edn]
             [clojure.pprint :as pp]
             [clojure.test :refer :all]))
@@ -37,8 +37,9 @@
         "IO__HTTP__POOL__MAX_PER_ROUTE" "10"
         "OTHER_THINGS" "[1 2 3 \"42\"]"
         "SOME_BIG_INT" "10000000000000000000"
-        "SOME_DATE" "7 Nov 22:44:53 2015"}
-       (map (fn [[k v]] [(#'cprop.source/env->path k)
+        "SOME_DATE" "7 Nov 22:44:53 2015"
+        "CLUSTERS__0__URL" "http://somewhere"}
+       (map (fn [[k v]] [(#'cprop.source/env->path k opts)
                          (#'cprop.source/str->value v opts)]))
        (into {})))
 
@@ -72,50 +73,82 @@
   (let [config (edn/read-string
                  (slurp "dev-resources/fill-me-in.edn"))
         merged (merge* config (read-test-env {}))
-        merged-as-is (merge* config (read-test-env {:as-is? true}))]
+        merged-as-is (merge* config (read-test-env {:as-is? true}))
+        merged-with-custom-parser (merge* config (read-test-env {:parse-fn assoc-in-parser}))]
 
-    (is (= {:datomic {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
-            :aws {:access-key "AKIAIOSFODNN7EXAMPLE",
-                  :secret-key "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-                  :region "ues-east-1",
-                  :visiblity-timeout-sec 30,
-                  :max-conn 50,
-                  :queue "cprop-dev"},
-            :io
-            {:http
-             {:pool
-              {:socket-timeout 600000,
-               :conn-timeout 60000,
-               :conn-req-timeout 600000,
-               :max-total 200,
-               :max-per-route 10}}},
-            :other-things [1 2 3 "42"]
-            :some-big-int 10000000000000000000N
-            :some-date 7}  ;; incorrectly parsed substitution (i.e. should have been "7 Nov 22:44:53 2015")
-                           ;; next assertion corrects that
-           merged))
+    (testing "normal parsing"
+      (is (= {:datomic {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
+              :aws {:access-key "AKIAIOSFODNN7EXAMPLE",
+                    :secret-key "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                    :region "ues-east-1",
+                    :visiblity-timeout-sec 30,
+                    :max-conn 50,
+                    :queue "cprop-dev"},
+              :clusters [{:name "one",
+                          :url nil}],
+              :io
+              {:http
+               {:pool
+                {:socket-timeout 600000,
+                 :conn-timeout 60000,
+                 :conn-req-timeout 600000,
+                 :max-total 200,
+                 :max-per-route 10}}},
+              :other-things [1 2 3 "42"]
+              :some-big-int 10000000000000000000N
+              ;; incorrectly parsed substitution (i.e. should have been "7 Nov 22:44:53 2015")
+              ;; next assertion corrects that
+              :some-date 7}
+             merged)))
 
-    ;; comparing as-is (i.e. parsed all params as strings)
-    (is (= {:datomic {:url "\"datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic\""},
-            :aws {:access-key "\"AKIAIOSFODNN7EXAMPLE\"",
-                  :secret-key "\"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\"",
-                  :region "\"ues-east-1\"",
-                  :visiblity-timeout-sec 30, ;; the non strings come directly from internal config
-                  :max-conn 50,
-                  :queue "cprop-dev"},
-            :io
-            {:http
-             {:pool
-              {:socket-timeout 600000,
-               :conn-timeout "60000",
-               :conn-req-timeout 600000,
-               :max-total 200,
-               :max-per-route "10"}}},
-            :other-things "[1 2 3 \"42\"]"
-            :some-big-int "10000000000000000000"
-            :some-date "7 Nov 22:44:53 2015"}
+    (testing "as-is parsing (i.e. parsed all params as strings)"
+      (is (= {:datomic {:url "\"datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic\""},
+              :aws {:access-key "\"AKIAIOSFODNN7EXAMPLE\"",
+                    :secret-key "\"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\"",
+                    :region "\"ues-east-1\"",
+                    :visiblity-timeout-sec 30, ;; the non strings come directly from internal config
+                    :max-conn 50,
+                    :queue "cprop-dev"},
+              :clusters [{:name "one",
+                          :url nil}],
+              :io
+              {:http
+               {:pool
+                {:socket-timeout 600000,
+                 :conn-timeout "60000",
+                 :conn-req-timeout 600000,
+                 :max-total 200,
+                 :max-per-route "10"}}},
+              :other-things "[1 2 3 \"42\"]"
+              :some-big-int "10000000000000000000"
+              :some-date "7 Nov 22:44:53 2015"}
 
-           merged-as-is))))
+             merged-as-is)))
+
+    (testing "custom key-path parsing"
+      (is (= {:datomic {:url "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"},
+              :aws {:access-key "AKIAIOSFODNN7EXAMPLE",
+                    :secret-key "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                    :region "ues-east-1",
+                    :visiblity-timeout-sec 30,
+                    :max-conn 50,
+                    :queue "cprop-dev"},
+              :clusters [{:name "one",
+                          :url "http://somewhere"}],
+              :io
+              {:http
+               {:pool
+                {:socket-timeout 600000,
+                 :conn-timeout 60000,
+                 :conn-req-timeout 600000,
+                 :max-total 200,
+                 :max-per-route 10}}},
+              :other-things [1 2 3 "42"]
+              :some-big-int 10000000000000000000N
+              ;; incorrectly parsed substitution (i.e. should have been "7 Nov 22:44:53 2015")
+              ;; next assertion corrects that
+              :some-date 7}
+             merged-with-custom-parser)))))
 
 (deftest should-merge-with-sys-props
   (let [props {"datomic_url" "sys-url"
@@ -133,6 +166,8 @@
              :visiblity-timeout-sec 30,
              :max-conn 50,
              :queue "cprop-dev"},
+            :clusters [{:name "one",
+                        :url nil}],
             :io
             {:http
              {:pool
@@ -171,6 +206,9 @@
              :visiblity-timeout-sec 30,
              :max-conn 50,
              :queue "cprop-dev"},
+            :clusters [{:name "one",
+                        :url nil}],
+            :database {:aname {:password "shh dont tell"}}
             :io
             {:http
              {:pool
@@ -204,58 +242,98 @@
 (deftest should-read-system-props []
   (let [ps        {"datomic_url" "sys-url"
                    "aws_access.key" "sys-key"
-                   "io_http_pool_socket.timeout" "4242"}
+                   "io_http_pool_socket.timeout" "4242"
+                   "database_aname_password" "shh, don't tell"}
         _            (doseq [[k v] ps]
                        (System/setProperty k v))
         props        (from-system-props)
-        props-as-is  (from-system-props {:as-is? true})]
+        props-as-is  (from-system-props {:as-is? true})
+        props-with-custom-parser (from-system-props
+                                  {:parse-fn #(case %
+                                                "aname" :parsed
+                                                (keyword %))})]
+    (testing "normal parsing"
+      (is (= {:http {:pool {:socket-timeout 4242}}}
+             (props :io)))
+      (is (= {:access-key "sys-key"}
+             (props :aws)))
+      (is (= {:url "sys-url"}
+             (props :datomic)))
+      (is (= {:aname {:password "shh, don't tell"}}
+             (props :database))))
 
-    (is (= {:http {:pool {:socket-timeout 4242}}}
-           (props :io)))
-    (is (= {:access-key "sys-key"}
-           (props :aws)))
-    (is (= {:url "sys-url"}
-           (props :datomic)))
-
-    ;; as-is: i.e. parse as strings
-    (is (= {:http {:pool {:socket-timeout "4242"}}}
+    (testing "as-is: i.e. parse as strings"
+      (is (= {:http {:pool {:socket-timeout "4242"}}}
            (props-as-is :io)))
-    (is (= {:access-key "sys-key"}
-           (props-as-is :aws)))
-    (is (= {:url "sys-url"}
-           (props-as-is :datomic)))
+      (is (= {:access-key "sys-key"}
+             (props-as-is :aws)))
+      (is (= {:url "sys-url"}
+             (props-as-is :datomic)))
+      (is (= {:aname {:password "shh, don't tell"}}
+             (props-as-is :database))))
+
+    (testing "custom key-path parsing"
+      (is (= {:http {:pool {:socket-timeout 4242}}}
+             (props-with-custom-parser :io)))
+      (is (= {:access-key "sys-key"}
+             (props-with-custom-parser :aws)))
+      (is (= {:url "sys-url"}
+             (props-with-custom-parser :datomic)))
+      (is (= {:parsed {:password "shh, don't tell"}}
+             (props-with-custom-parser :database))))
 
     (doseq [[k _] ps]
       (System/clearProperty k))))
 
 (deftest should-read-from-props-file []
   (let [ps (from-props-file "dev-resources/overrides.properties")
-        ps-as-is (from-props-file "dev-resources/overrides.properties" {:as-is? true})]
+        ps-as-is (from-props-file "dev-resources/overrides.properties" {:as-is? true})
+        ps-with-custom-parser (from-props-file "dev-resources/overrides.properties"
+                                               {:parse-fn #(case %
+                                                             "aname" :parsed
+                                                             (keyword %))})]
 
-    (is (= {:aws
-            {:region "us-east-2",
-             :secret-key "super secret s3cr3t!!!",
-             :access-key "super secret key"},
-            :other-things ["1" "2" "3" "4" "5" "6" "7"],
-            :io {:http {:pool {:conn-timeout 42, :max-per-route 42}}},
-            :source {:account {:rabbit {:host "localhost"}}},
-            :datomic
-            {:url
-             "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}}
-           ps))
+    (testing "normal parsing"
+      (is (= {:aws
+              {:region "us-east-2",
+               :secret-key "super secret s3cr3t!!!",
+               :access-key "super secret key"},
+              :other-things ["1" "2" "3" "4" "5" "6" "7"],
+              :io {:http {:pool {:conn-timeout 42, :max-per-route 42}}},
+              :database {:aname {:password "shh dont tell"}},
+              :source {:account {:rabbit {:host "localhost"}}},
+              :datomic
+              {:url
+               "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}}
+             ps)))
 
-    ;; as-is: i.e. read all prop values as strings
-    (is (= {:aws
-            {:region "us-east-2",
-             :secret-key "super secret s3cr3t!!!",
-             :access-key "super secret key"},
-            :other-things "[\"1\" \"2\" \"3\" \"4\" \"5\" \"6\" \"7\"]",
-            :io {:http {:pool {:conn-timeout "42", :max-per-route "42"}}},
-            :source {:account {:rabbit {:host "localhost"}}},
-            :datomic
-            {:url
-             "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}}
-           ps-as-is))))
+    (testing "as-is: i.e. read all prop values as strings"
+      (is (= {:aws
+              {:region "us-east-2",
+               :secret-key "super secret s3cr3t!!!",
+               :access-key "super secret key"},
+              :other-things "[\"1\" \"2\" \"3\" \"4\" \"5\" \"6\" \"7\"]",
+              :io {:http {:pool {:conn-timeout "42", :max-per-route "42"}}},
+              :database {:aname {:password "shh dont tell"}},
+              :source {:account {:rabbit {:host "localhost"}}},
+              :datomic
+              {:url
+               "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}}
+             ps-as-is)))
+
+    (testing "custom key-path parsing"
+      (is (= {:aws
+              {:region "us-east-2",
+               :secret-key "super secret s3cr3t!!!",
+               :access-key "super secret key"},
+              :other-things ["1" "2" "3" "4" "5" "6" "7"],
+              :io {:http {:pool {:conn-timeout 42, :max-per-route 42}}},
+              :database {:parsed {:password "shh dont tell"}},
+              :source {:account {:rabbit {:host "localhost"}}},
+              :datomic
+              {:url
+               "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}}
+             ps-with-custom-parser)))))
 
 (deftest should-throw-on-file-not-found
   (is (thrown-with-msg? java.util.MissingResourceException

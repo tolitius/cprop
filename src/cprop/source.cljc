@@ -16,13 +16,18 @@
     {:readers *data-readers*}
     (slurp input)))
 
-(defn- k->path [k dash level]
+(defn- k->path
+  "Parses the given key by splitting on `level` and replacing `dash` with `-`.
+
+  Options:
+    :parse-fn - func that will be called on each part of the split key. Defaults
+               to `keyword`."
+  [k dash level {:keys [parse-fn]
+                 :or {parse-fn keyword}}]
   (as-> k $
-        (s/lower-case $)
-        (s/split $ level)
-        (map (comp keyword
-                   #(s/replace % dash "-"))
-             $)))
+    (s/lower-case $)
+    (s/split $ level)
+    (map (comp parse-fn #(s/replace % dash "-")) $)))
 
 (defn- str->num [s]
   "Convert numeric string into `java.lang.Long` or `clojure.lang.BigInt`"
@@ -30,6 +35,13 @@
     (Long/parseLong s)
     (catch NumberFormatException _
       (bigint s))))
+
+(defn assoc-in-parser
+  "Key-part parser that mimics `assoc-in`'s behavior."
+  [part]
+  (if (re-matches #"\d+" part)
+    (str->num part)
+    (keyword part)))
 
 (defn- str->value [v {:keys [as-is?]}]
   "ENV vars and system properties are strings. str->value will convert:
@@ -51,15 +63,18 @@
 
 ;; OS level ENV vars
 
-(defn- env->path [k]
-  (k->path k "_" #"__"))
+(defn- env->path
+  ([k]
+   (env->path k {}))
+  ([k opts]
+   (k->path k "_" #"__" opts)))
 
 (defn read-system-env
   ([]
    (read-system-env {}))
   ([opts]
    (->> (System/getenv)
-        (map (fn [[k v]] [(env->path k)
+        (map (fn [[k v]] [(env->path k opts)
                           (str->value v opts)]))
         (into {}))))
 
@@ -67,22 +82,28 @@
 
 ;; TODO: think about reversing it (k->path k "_" #"\.")
 ;; since this is usually the .properties structure
-(defn- sysprop->path [k]
-  (k->path k "." #"_"))
+(defn- sysprop->path
+  ([k]
+   (sysprop->path k {}))
+  ([k opts]
+   (k->path k "." #"_" opts)))
 
 (defn read-system-props
   ([]
    (read-system-props {}))
   ([opts]
    (->> (System/getProperties)
-        (map (fn [[k v]] [(sysprop->path k)
+        (map (fn [[k v]] [(sysprop->path k opts)
                           (str->value v opts)]))
         (into {}))))
 
 ;; .properties files
 
-(defn- prop-key->path [k]
-  (k->path k "_" #"\."))
+(defn- prop-key->path
+  ([k]
+   (prop-key->path k {}))
+  ([k opts]
+   (k->path k "_" #"\." opts)))
 
 (defn prop-seq [value]
   (let [xs (s/split value #",")]
@@ -103,7 +124,7 @@
    (read-props-file path {}))
   ([path {:keys [parse-seqs?] :as opts}]
   (->> (slurp-props-file path)
-       (map (fn [[k v]] [(prop-key->path k)
+       (map (fn [[k v]] [(prop-key->path k opts)
                          (str->value (if-not (false? parse-seqs?) ;; could be nil, which is true in this case
                                        (prop-seq v)
                                        v)
