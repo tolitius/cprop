@@ -2,7 +2,7 @@
   (:require [clojure.edn :as edn]
             [clojure.string :as s]
             [clojure.java.io :as io]
-            [cprop.tools :refer [contains-in? expand-home with-echo in-debug?]])
+            [cprop.tools :refer [contains-in? expand-home with-echo in-debug? str->num]])
   (:import java.util.MissingResourceException
            java.io.PushbackReader
            java.io.StringReader
@@ -28,13 +28,6 @@
     (s/lower-case $)
     (s/split $ level)
     (map (comp key-parse-fn #(s/replace % dash "-")) $)))
-
-(defn- str->num [s]
-  "Convert numeric string into `java.lang.Long` or `clojure.lang.BigInt`"
-  (try
-    (Long/parseLong s)
-    (catch NumberFormatException _
-      (bigint s))))
 
 (defn- str->value [v {:keys [as-is?]}]
   "ENV vars and system properties are strings. str->value will convert:

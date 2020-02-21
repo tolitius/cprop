@@ -167,6 +167,13 @@
   (when (seq m)
     (flatten-keys* {} [] m)))
 
+(defn str->num [s]
+  "Convert numeric string into `java.lang.Long` or `clojure.lang.BigInt`"
+  (try
+    (Long/parseLong s)
+    (catch NumberFormatException _
+      (bigint s))))
+
 (defn parse-num-keys
   "Key-part parser that parses keywords and integerss"
   [part]
