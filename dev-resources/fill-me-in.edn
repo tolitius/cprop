@@ -14,4 +14,6 @@
                      :max-per-route :ME-ALSO}}}
   :some-big-int :I-SHOULD-BE-A-BIG-INT
   :other-things ["I am a vector and also like to place the substitute game"]
-  :some-date "so/me/date"}
+  :some-date "so/me/date"
+  :clusters [{:name "one"
+              :url nil}]}

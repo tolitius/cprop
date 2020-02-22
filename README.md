@@ -650,6 +650,34 @@ If you need _ALL_ the properties and configs to come in "as is" (not as EDN) `:a
 
 ```clojure
 (load-config :as-is? true)
+
+## Custom key-path parsing
+
+By default, `cprop` assumes each part of a processed key-path should be parsed into `keywords`. While this works in many situations, it may be not ideal in others.
+If you need custom parsing you can provide a `:key-parse-fn` which will be called on each part of a key path:
+
+```clojure
+;; config.edn
+{:clusters [{:name "first" :url "http://somewhere" :password nil}
+            {:name "second" :url "http://elsewhere" :password nil}]}
+```
+The following ENV vars wouldn't work since the `0` and `1` are coerced to `keywords`.
+
+```bash
+export CLUSTERS__0__PASSWORD=super-duper-secret
+export CLUSTERS__1__PASSWORD=shh-don't-tell
+```
+
+However, by providing a custom parser you can define the key-path however you would like:
+
+```clojure
+=> (def parse-numbers [part]
+     (if (re-matches #"\d+" part)
+       (long part)
+       (keyword part)))
+=> (load-config :key-parse-fn parse-numbers)
+{:clusters [{:name "first" :url "http://somewhere" :password "super-duper-secret"}
+            {:name "second" :url "http://elsewhere" :password "shh-don't-tell"}]}
 ```
 
 ## Cursors
