@@ -16,7 +16,7 @@ where all configuration properties converge
 - [Using properties](#using-properties)
 - [Merging Configurations](#merging-configurations)
   - [Merging with all System and ENV](#merging-with-all-system-and-env)
-  - [Override all configs](#override-all-configs)  
+  - [Override all configs](#override-all-configs)
 - [Merging with system properties](#merging-with-system-properties)
   - [System properties cprop syntax](#system-properties-cprop-syntax)
 - [Merging with ENV variables](#merging-with-env-variables)
@@ -28,6 +28,7 @@ where all configuration properties converge
 - [Merging with property files](#merging-with-property-files)
   - [Property files syntax](#property-files-syntax)
 - [Read "as is" (not EDN)](#read-as-is-not-edn)
+- [Customizing key path parsing](#customizing-key-path-parsing)
 - [Cursors](#cursors)
   - [Composable Cursors](#composable-cursors)
 - [Tools](#tools)
@@ -650,35 +651,45 @@ If you need _ALL_ the properties and configs to come in "as is" (not as EDN) `:a
 
 ```clojure
 (load-config :as-is? true)
+```
 
-## Custom key-path parsing
+## Customizing key path parsing
 
-By default, `cprop` assumes each part of a processed key-path should be parsed into `keywords`. While this works in many situations, it may be not ideal in others.
-If you need custom parsing you can provide a `:key-parse-fn` which will be called on each part of a key path:
+By default `cprop` parses keys / nestsed key paths as Clojure keywords: i.e. `{:a {:b {:c 42}}}`. There are a few corner cases where some of the keys are best parsed as different types.
+
+For example, let's say we need to override passwords via ENV variables for this config:
 
 ```clojure
-;; config.edn
-{:clusters [{:name "first" :url "http://somewhere" :password nil}
-            {:name "second" :url "http://elsewhere" :password nil}]}
+{:clusters [{:name "first" :url "http://somewhere" :password "OVERRIDE ME"}
+            {:name "second" :url "http://elsewhere" :password "OVERRIDE ME"}]}
 ```
-The following ENV vars wouldn't work since the `0` and `1` are coerced to `keywords`.
+
+These ENV vars won't do it since the `0` and `1` are coerced to `keywords` by default:
 
 ```bash
 export CLUSTERS__0__PASSWORD=super-duper-secret
 export CLUSTERS__1__PASSWORD=shh-don't-tell
 ```
 
-However, by providing a custom parser you can define the key-path however you would like:
+In cases like these we can provide a custom `:key-parse-fn` function, when loading config, which will be called on each part of a key path:
 
 ```clojure
 => (def parse-numbers [part]
-     (if (re-matches #"\d+" part)
-       (long part)
-       (keyword part)))
+     (if (re-matches #"\d+" part)  ;; if the key is a number
+       (long part)                 ;; this could be done with (cprop.tools/str->num) to support bigint
+       (keyword part)))            ;; leave the default behavior
+```
+
+now we can plug this function in with `:key-parse-fn`:
+
+```clojure
 => (load-config :key-parse-fn parse-numbers)
+
 {:clusters [{:name "first" :url "http://somewhere" :password "super-duper-secret"}
             {:name "second" :url "http://elsewhere" :password "shh-don't-tell"}]}
 ```
+
+and.. great success.
 
 ## Cursors
 
@@ -926,7 +937,7 @@ Besides the `from-props-file` function that converts `.properties` file to a map
 
 ## License
 
-Copyright © 2019 tolitius
+Copyright © 2020 tolitius
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
