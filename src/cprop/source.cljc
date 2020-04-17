@@ -2,7 +2,7 @@
   (:require [clojure.edn :as edn]
             [clojure.string :as s]
             [clojure.java.io :as io]
-            [cprop.tools :refer [contains-in? expand-home with-echo in-debug?]])
+            [cprop.tools :refer [contains-in? expand-home with-echo in-debug? str->num]])
   (:import java.util.MissingResourceException
            java.io.PushbackReader
            java.io.StringReader
@@ -16,15 +16,20 @@
     {:readers *data-readers*}
     (slurp input)))
 
-(defn- k->path [k dash level]
-  (as-> k $
-        (s/lower-case $)
-        (s/split $ level)
-        (map (comp keyword
-                   #(s/replace % dash "-"))
-             $)))
+(defn- k->path
+  "Parses the given key by splitting on `level` and replacing `dash` with `-`.
 
-(defn- str->value
+  Options:
+    :key-parse-fn - func that will be called on each part of the split key. Defaults
+               to `keyword`."
+  [k dash level {:keys [key-parse-fn]
+                 :or {key-parse-fn keyword}}]
+  (as-> k $
+    (s/lower-case $)
+    (s/split $ level)
+    (map (comp key-parse-fn #(s/replace % dash "-")) $)))
+
+(defn- str->value [v {:keys [as-is?]}]
   "ENV vars and system properties are strings. str->value will convert:
   the numbers to longs, the alphanumeric values to strings, and will use Clojure reader for the rest
   in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
@@ -41,15 +46,18 @@
 
 ;; OS level ENV vars
 
-(defn- env->path [k]
-  (k->path k "_" #"__"))
+(defn- env->path
+  ([k]
+   (env->path k {}))
+  ([k opts]
+   (k->path k "_" #"__" opts)))
 
 (defn read-system-env
   ([]
    (read-system-env {}))
   ([opts]
    (->> (System/getenv)
-        (map (fn [[k v]] [(env->path k)
+        (map (fn [[k v]] [(env->path k opts)
                           (str->value v opts)]))
         (into {}))))
 
@@ -57,22 +65,28 @@
 
 ;; TODO: think about reversing it (k->path k "_" #"\.")
 ;; since this is usually the .properties structure
-(defn- sysprop->path [k]
-  (k->path k "." #"_"))
+(defn- sysprop->path
+  ([k]
+   (sysprop->path k {}))
+  ([k opts]
+   (k->path k "." #"_" opts)))
 
 (defn read-system-props
   ([]
    (read-system-props {}))
   ([opts]
    (->> (System/getProperties)
-        (map (fn [[k v]] [(sysprop->path k)
+        (map (fn [[k v]] [(sysprop->path k opts)
                           (str->value v opts)]))
         (into {}))))
 
 ;; .properties files
 
-(defn- prop-key->path [k]
-  (k->path k "_" #"\."))
+(defn- prop-key->path
+  ([k]
+   (prop-key->path k {}))
+  ([k opts]
+   (k->path k "_" #"\." opts)))
 
 (defn prop-seq [value]
   (let [xs (s/split value #",")]
@@ -93,7 +107,7 @@
    (read-props-file path {}))
   ([path {:keys [parse-seqs?] :as opts}]
   (->> (slurp-props-file path)
-       (map (fn [[k v]] [(prop-key->path k)
+       (map (fn [[k v]] [(prop-key->path k opts)
                          (str->value (if-not (false? parse-seqs?) ;; could be nil, which is true in this case
                                        (prop-seq v)
                                        v)
