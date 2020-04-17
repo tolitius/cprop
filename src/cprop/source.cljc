@@ -33,19 +33,16 @@
   "ENV vars and system properties are strings. str->value will convert:
   the numbers to longs, the alphanumeric values to strings, and will use Clojure reader for the rest
   in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
-  (cond
-    as-is? v
-    (re-matches #"[0-9]+" v) (str->num v)
-    (re-matches #"^(true|false)$" v) (Boolean/parseBoolean v)
-    (re-matches #"\w+" v) v
-    :else
+  [v {:keys [as-is?]}]
+  (if as-is?
+    v
     (try
       (let [parsed (edn/read-string {:readers *data-readers*} v)]
         (if (symbol? parsed)
           v
           parsed))
-         (catch Throwable _
-           v))))
+      (catch Throwable _
+        v))))
 
 ;; OS level ENV vars
 
