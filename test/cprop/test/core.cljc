@@ -153,7 +153,7 @@
 
 (deftest should-merge-with-sys-props
   (let [props {"datomic_url" "sys-url"
-               "aws_access.key" "sys-key"
+               "aws_access.key" "0x424242"
                "io_http_pool_socket.timeout" "4242"}
         _      (doseq [[k v] props] (System/setProperty k v))
         config (load-config :resource "fill-me-in.edn"
@@ -161,7 +161,7 @@
 
     (is (= {:datomic {:url "sys-url"},
             :aws
-            {:access-key "sys-key",
+            {:access-key "0x424242",
              :secret-key "ME TOO",
              :region "FILL ME IN AS WELL",
              :visiblity-timeout-sec 30,

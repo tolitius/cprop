@@ -30,9 +30,18 @@
     (map (comp key-parse-fn #(s/replace % dash "-")) $)))
 
 (defn- str->value [v {:keys [as-is?]}]
-  "ENV vars and system properties are strings. str->value will convert:
-  the numbers to longs, the alphanumeric values to strings, and will use Clojure reader for the rest
-  in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
+  "ENV vars and system properties are strings which means that there are no types, but string.
+   This results in some interesting corner cases. for example:
+
+     is '0x42' a number or a string? you ask Clojure (or if it came from edn) it is a number 66
+     but should this string be parsed as 66? what if this is username?
+
+   str->value will convert:
+     * numbers to longs
+     * alphanumeric values to strings
+     * true/false to boolean
+     * and will use Clojure reader for the rest
+   in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
   (cond
     as-is? v
     (re-matches #"[0-9]+" v) (str->num v)
