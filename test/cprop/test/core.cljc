@@ -249,6 +249,7 @@
                        (System/setProperty k v))
         props        (from-system-props)
         props-as-is  (from-system-props {:as-is? true})
+        props-as-is-path  (from-system-props {:as-is-paths #{'(:io :http :pool :socket-timeout)}})
         props-with-custom-parser (from-system-props
                                   {:key-parse-fn #(case %
                                                 "aname" :parsed
@@ -273,6 +274,16 @@
       (is (= {:aname {:password "shh, don't tell"}}
              (props-as-is :database))))
 
+    (testing "as-is-paths: i.e. parse as strings only the given path"
+        (is (= {:http {:pool {:socket-timeout "4242"}}}
+               (props-as-is-path :io)))
+        (is (= {:access-key "sys-key"}
+               (props-as-is-path :aws)))
+        (is (= {:url "sys-url"}
+               (props-as-is-path :datomic)))
+        (is (= {:aname {:password "shh, don't tell"}}
+               (props-as-is-path :database))))
+
     (testing "custom key-path parsing"
       (is (= {:http {:pool {:socket-timeout 4242}}}
              (props-with-custom-parser :io)))
@@ -289,6 +300,7 @@
 (deftest should-read-from-props-file []
   (let [ps (from-props-file "dev-resources/overrides.properties")
         ps-as-is (from-props-file "dev-resources/overrides.properties" {:as-is? true})
+        ps-as-is-path (from-props-file "dev-resources/overrides.properties" {:as-is-paths #{'(:other-things)}})
         ps-with-custom-parser (from-props-file "dev-resources/overrides.properties"
                                                {:key-parse-fn #(case %
                                                              "aname" :parsed
@@ -321,6 +333,20 @@
               {:url
                "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}}
              ps-as-is)))
+
+    (testing "as-is-path: i.e. read prop values as strings only for given path, normal parsing for others"
+        (is (= {:aws
+                              {:region "us-east-2",
+                               :secret-key "super secret s3cr3t!!!",
+                               :access-key "super secret key"},
+                :other-things "[\"1\" \"2\" \"3\" \"4\" \"5\" \"6\" \"7\"]",
+                :io {:http {:pool {:conn-timeout 42, :max-per-route 42}}},
+                :database {:aname {:password "shh dont tell"}},
+                :source {:account {:rabbit {:host "localhost"}}},
+                :datomic
+                              {:url
+                               "datomic:sql://?jdbc:postgresql://localhost:5432/datomic?user=datomic&password=datomic"}}
+               ps-as-is-path)))
 
     (testing "custom key-path parsing"
       (is (= {:aws
