@@ -56,6 +56,12 @@
          (catch Throwable _
            v))))
 
+(defn ^:private with-as-is
+    [{:keys [as-is? as-is-paths] :as opts} path]
+    (assoc opts :as-is? (or as-is?
+                            (and as-is-paths
+                                 (as-is-paths path)))))
+
 ;; OS level ENV vars
 
 (defn- env->path
@@ -70,9 +76,8 @@
   ([opts]
    (->> (System/getenv)
         (map (fn [[k v]]
-               (let [path        (env->path k opts)
-                     as-is-paths (:as-is-paths opts)]
-                   [path (->> (assoc opts :as-is? (or (:as-is? opts) (and as-is-paths (as-is-paths path))))
+               (let [path        (env->path k opts)]
+                   [path (->> (with-as-is opts path)
                               (str->value v))])))
         (into {}))))
 
@@ -92,9 +97,8 @@
   ([opts]
    (->> (System/getProperties)
         (map (fn [[k v]]
-               (let [path        (sysprop->path k opts)
-                     as-is-paths (:as-is-paths opts)]
-                   [path (->> (assoc opts :as-is? (or (:as-is? opts) (and as-is-paths (as-is-paths path))))
+               (let [path        (sysprop->path k opts)]
+                   [path (->> (with-as-is opts path)
                               (str->value v))])))
         (into {}))))
 
@@ -126,9 +130,8 @@
   ([path {:keys [parse-seqs?] :as opts}]
   (->> (slurp-props-file path)
        (map (fn [[k v]]
-              (let [prop-path   (prop-key->path k opts)
-                    as-is-paths (:as-is-paths opts)]
-                  [prop-path (->> (assoc opts :as-is? (or (:as-is? opts) (and as-is-paths (as-is-paths prop-path))))
+              (let [prop-path   (prop-key->path k opts)]
+                  [prop-path (->> (with-as-is opts prop-path)
                                   (str->value (if-not (false? parse-seqs?) ;; could be nil, which is true in this case
                                                   (prop-seq v)
                                                   v)))])))
