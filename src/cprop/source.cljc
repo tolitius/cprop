@@ -16,18 +16,42 @@
     {:readers *data-readers*}
     (slurp input)))
 
-(defn- k->path
-  "Parses the given key by splitting on `level` and replacing `dash` with `-`.
+(defn k->ns-str
+  "takes:
+    * ns-key: a regex on how to split a key to namespaced key
+    * k:      a string that might represents a namespaced key
 
-  Options:
-    :key-parse-fn - func that will be called on each part of the split key. Defaults
-               to `keyword`."
-  [k dash level {:keys [key-parse-fn]
-                 :or {key-parse-fn keyword}}]
+   and creates a namespaced string based on those splits: i.e.
+
+   => (k->ns-str #\"___\" \"crux___foo___bar___db-spec\")
+   \"crux/foo/bar/db-spec\""
+  [ns-key k]
+  (when k
+    (let [parts (s/split k ns-key)]
+      (if (= (count parts) 1)
+        k
+        (->> parts
+             (s/join "/"))))))
+
+(defn- k->path
+  "parses the given key by splitting on `level` and replacing `dash` with `-`.
+
+   options:
+           :key-parse-fn - will be called on each level (part of the split key).
+                           defaults to `keyword`.
+           :to-ns        - will be called on each level (part of the split key).
+                           defaults to `identity`."
+  [k dash level {:keys [key-parse-fn
+                        to-ns-key]
+                 :or {key-parse-fn keyword
+                      to-ns-key identity}}]
   (as-> k $
     (s/lower-case $)
     (s/split $ level)
-    (map (comp key-parse-fn #(s/replace % dash "-")) $)))
+    (map (comp key-parse-fn
+               #(s/replace % dash "-")
+               to-ns-key)
+         $)))
 
 (defn- str->value [v {:keys [as-is?]}]
   "ENV vars and system properties are strings which means that there are no types, but string.
@@ -62,7 +86,15 @@
   ([k]
    (env->path k {}))
   ([k opts]
-   (k->path k "_" #"__" opts)))
+   (let [dash    "_"
+         level   #"(?<!_)_{2}(?!_)"   ;; matches _exactly_ 2 underscores to take as level (i.e. FOO__BAR to {:foo {:bar ..}})
+         ns-key  #"(?<!_)_{3}(?!_)"]  ;; matches _exactly_ 3 underscores to take as a namespaced key (i.e. FOO___BAR to :foo/bar)
+     (k->path k
+              dash
+              level
+              (assoc opts
+                     :to-ns-key (partial k->ns-str
+                                         ns-key))))))
 
 (defn read-system-env
   ([]

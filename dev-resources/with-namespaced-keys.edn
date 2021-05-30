@@ -1,0 +1,6 @@
+{:crux {:crux/db-spec
+        {:dbname "OVERRIDE ME"
+         :dbtype "postgresql"}}
+ :crux-and-friends {:crux/and/friends/db-spec
+                    {:dbname "OVERRIDE ME"
+                     :dbtype "postgresql"}}}

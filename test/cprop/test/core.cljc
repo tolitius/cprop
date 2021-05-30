@@ -39,7 +39,9 @@
         "OTHER_THINGS" "[1 2 3 \"42\"]"
         "SOME_BIG_INT" "10000000000000000000"
         "SOME_DATE" "7 Nov 22:44:53 2015"
-        "CLUSTERS__0__URL" "http://somewhere"}
+        "CLUSTERS__0__URL" "http://somewhere"
+        "CRUX__CRUX___DB_SPEC__DBNAME" "crux-db"
+        "CRUX_AND_FRIENDS__CRUX___AND___FRIENDS___DB_SPEC__DBNAME" "crux-and-friends-db"}
        (map (fn [[k v]] [(#'cprop.source/env->path k opts)
                          (#'cprop.source/str->value v opts)]))
        (into {})))
@@ -356,3 +358,17 @@
              with-nil
              with-vector-nil
              with-nil-and-friends)))))
+
+(deftest should-parse-env-namespaced-keys
+  (let [config (edn/read-string
+                 (slurp "dev-resources/with-namespaced-keys.edn"))
+        merged (merge* config (read-test-env {}))]
+
+    (testing "should replace namespaced keys with ENV values"
+      (is (= {:crux {:crux/db-spec
+                     {:dbname "crux-db"
+                      :dbtype "postgresql"}}
+              :crux-and-friends {:crux/and/friends/db-spec
+                                 {:dbname "crux-and-friends-db"
+                                  :dbtype "postgresql"}}}
+             merged)))))
