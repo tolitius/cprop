@@ -2,6 +2,7 @@
   (:require [cprop.core :refer [load-config cursor]]
             [cprop.source :refer [merge* from-stream from-file from-resource from-props-file from-env from-system-props]]
             [cprop.tools :as tools]
+            [clojure.string :as s]
             [clojure.edn :as edn]
             [clojure.pprint :as pp]
             [clojure.test :refer :all]))
@@ -41,7 +42,10 @@
         "SOME_DATE" "7 Nov 22:44:53 2015"
         "CLUSTERS__0__URL" "http://somewhere"
         "CRUX__CRUX___DB_SPEC__DBNAME" "crux-db"
-        "CRUX_AND_FRIENDS__CRUX___AND___FRIENDS___DB_SPEC__DBNAME" "crux-and-friends-db"}
+        "CRUX_AND_FRIENDS__CRUX___AND___FRIENDS___DB_SPEC__DBNAME" "crux-and-friends-db"
+        "CRUX_IN_CROCS__CRUX_DOT_AND_DOT_FRIENDS___DB_SPEC__CRUX_DOT_JDBC___HOST" "jdbc-bc-jd"
+        "CRUX_IN_CROCS__CRUX_DOT_AND_DOT_FRIENDS___DB_SPEC__CRUX_DOT_JDBC___USER" "robocop"
+        "CRUX_IN_CROCS__CRUX_DOT_AND_DOT_FRIENDS___DB_SPEC__CRUX_DOT_JDBC___PASSWORD" "my friends call me Murphy"}
        (map (fn [[k v]] [(#'cprop.source/env->path k opts)
                          (#'cprop.source/str->value v opts)]))
        (into {})))
@@ -371,4 +375,29 @@
               :crux-and-friends {:crux/and/friends/db-spec
                                  {:dbname "crux-and-friends-db"
                                   :dbtype "postgresql"}}}
+             merged)))))
+
+(deftest should-parse-dotted-namespaced-keys
+  "custom custom parse a dotted key
+   since env variables have nothing but underscore to work with.
+   we can use anything that suits our use case (say: _DOT_) to represent a '.' for example.
+
+   i.e. 'FOO_DOT_BAR___BAZ' env key is parsed as 'foo.bar/baz'"
+
+  (let [config (edn/read-string
+                 (slurp "dev-resources/with-dotted-keys.edn"))
+        env (read-test-env {:key-parse-fn (fn [k]                        ;; <= custom key parse function
+                                            (-> k
+                                                (s/replace #"-dot-" ".")
+                                                keyword))})
+        merged (merge* config env)]
+
+    (testing "should replace namespaced dotted keys with ENV values"
+      (is (= {:crux-in-crocs {:crux.and.friends/db-spec
+                              {:crux.node/topology '[cprop.tools/with-echo]
+                               :crux.jdbc/dbtype "postgresql"
+                               :crux.jdbc/dbname "cruxdb"
+                               :crux.jdbc/host "jdbc-bc-jd"
+                               :crux.jdbc/user "robocop"
+                               :crux.jdbc/password "my friends call me Murphy"}}}
              merged)))))
