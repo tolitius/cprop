@@ -656,7 +656,9 @@ If you need _ALL_ the properties and configs to come in "as is" (not as EDN) `:a
 You can also opt to keep value conversion for all your properties with the exception of a set of specified paths using `:as-is-paths`:
 
 ```clojure
-(load-config :as-is-paths #{'(:io :http :pool :socket-timeout)})
+(load-config :as-is-paths #{[:io :http :pool :socket-timeout]
+                            [:datomic :max-conn]
+                            [:some :other :path]})
 ```
 
 ## Customizing key path parsing

@@ -244,12 +244,15 @@
   (let [ps        {"datomic_url" "sys-url"
                    "aws_access.key" "sys-key"
                    "io_http_pool_socket.timeout" "4242"
+                   "kafka_producer_linger.ms" "10"
+                   "kafka_producer_buffer.size" "65536"
                    "database_aname_password" "shh, don't tell"}
         _            (doseq [[k v] ps]
                        (System/setProperty k v))
         props        (from-system-props)
         props-as-is  (from-system-props {:as-is? true})
-        props-as-is-path  (from-system-props {:as-is-paths #{'(:io :http :pool :socket-timeout)}})
+        props-as-is-path  (from-system-props {:as-is-paths #{[:io :http :pool :socket-timeout]
+                                                             [:kafka :producer :linger-ms]}})
         props-with-custom-parser (from-system-props
                                   {:key-parse-fn #(case %
                                                 "aname" :parsed
@@ -257,6 +260,9 @@
     (testing "normal parsing"
       (is (= {:http {:pool {:socket-timeout 4242}}}
              (props :io)))
+      (is (= {:producer {:linger-ms 10
+                        :buffer-size 65536}}
+             (props :kafka)))
       (is (= {:access-key "sys-key"}
              (props :aws)))
       (is (= {:url "sys-url"}
@@ -266,7 +272,10 @@
 
     (testing "as-is: i.e. parse as strings"
       (is (= {:http {:pool {:socket-timeout "4242"}}}
-           (props-as-is :io)))
+             (props-as-is :io)))
+      (is (= {:producer {:linger-ms "10"
+                         :buffer-size "65536"}}
+             (props-as-is :kafka)))
       (is (= {:access-key "sys-key"}
              (props-as-is :aws)))
       (is (= {:url "sys-url"}
@@ -275,18 +284,24 @@
              (props-as-is :database))))
 
     (testing "as-is-paths: i.e. parse as strings only the given path"
-        (is (= {:http {:pool {:socket-timeout "4242"}}}
-               (props-as-is-path :io)))
-        (is (= {:access-key "sys-key"}
+      (is (= {:http {:pool {:socket-timeout "4242"}}}
+             (props-as-is-path :io)))
+      (is (= {:producer {:linger-ms "10"
+                           :buffer-size 65536}}
+             (props-as-is-path :kafka)))
+      (is (= {:access-key "sys-key"}
                (props-as-is-path :aws)))
-        (is (= {:url "sys-url"}
+      (is (= {:url "sys-url"}
                (props-as-is-path :datomic)))
-        (is (= {:aname {:password "shh, don't tell"}}
+      (is (= {:aname {:password "shh, don't tell"}}
                (props-as-is-path :database))))
 
     (testing "custom key-path parsing"
       (is (= {:http {:pool {:socket-timeout 4242}}}
              (props-with-custom-parser :io)))
+      (is (= {:producer {:linger-ms 10
+                         :buffer-size 65536}}
+             (props-with-custom-parser :kafka)))
       (is (= {:access-key "sys-key"}
              (props-with-custom-parser :aws)))
       (is (= {:url "sys-url"}
