@@ -653,6 +653,14 @@ If you need _ALL_ the properties and configs to come in "as is" (not as EDN) `:a
 (load-config :as-is? true)
 ```
 
+You can also opt to keep value conversion for all your properties with the exception of a set of specified paths using `:as-is-paths`:
+
+```clojure
+(load-config :as-is-paths #{[:io :http :pool :socket-timeout]
+                            [:datomic :max-conn]
+                            [:some :other :path]})
+```
+
 ## Customizing key path parsing
 
 By default `cprop` parses keys / nestsed key paths as Clojure keywords: i.e. `{:a {:b {:c 42}}}`. There are a few corner cases where some of the keys are best parsed as different types.
