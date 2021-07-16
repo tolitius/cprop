@@ -1,7 +1,0 @@
-{:crux-in-crocs {:crux.and.friends/db-spec
-                 {:crux.node/topology [cprop.tools/with-echo]
-                  :crux.jdbc/dbtype "postgresql"
-                  :crux.jdbc/dbname "cruxdb"
-                  :crux.jdbc/host "OVERRIDE ME"
-                  :crux.jdbc/user "OVERRIDE ME"
-                  :crux.jdbc/password "OVERRIDE ME"}}}
