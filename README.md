@@ -27,6 +27,7 @@ where all configuration properties converge
   - [Merging ENV example](#merging-env-example)
 - [Merging with property files](#merging-with-property-files)
   - [Property files syntax](#property-files-syntax)
+- [Merging with env file](#merging-with-env-file)
 - [Read "as is" (not EDN)](#read-as-is-not-edn)
 - [Customizing key path parsing](#customizing-key-path-parsing)
 - [Cursors](#cursors)
@@ -596,6 +597,20 @@ will convert it to:
   :venus {:orbit-days 224.7}},
  :dwarf {:pluto {:moons ["charon" "styx" "nix" "kerberos" "hydra"]}}}
 ```
+
+## Merging with env file
+
+.env files are very common in other communities (Ruby, Heroku, Docker).
+The content of an .env file is a list of environment variables
+
+The following syntax rules apply to the .env file:
+
+- Compose expects each line in an .env file to be in VAR=VAL format
+- Lines beginning with # are processed as comments and ignored
+- Blank lines are ignored
+- There is no special handling of quotation marks. This means that they are part of the VAL
+
+In .env files you may follow [environment variables](#speaking-env-variables) syntaxe.
 
 ## Read "as is" (not EDN)
 

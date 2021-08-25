@@ -1,6 +1,6 @@
 (ns cprop.test.core
   (:require [cprop.core :refer [load-config cursor]]
-            [cprop.source :refer [merge* from-stream from-file from-resource from-props-file from-env from-system-props]]
+            [cprop.source :refer [merge* from-stream from-file from-env-file from-resource from-props-file from-env from-system-props]]
             [cprop.tools :as tools]
             [clojure.string :as s]
             [clojure.edn :as edn]
@@ -54,6 +54,7 @@
   (is (map? (from-stream "dev-resources/config.edn")))
   (is (map? (from-file "dev-resources/config.edn")))
   (is (map? (from-resource "config.edn")))
+  (is (map? (from-env-file "dev-resources/.env")))
   (is (map? (load-config :file "dev-resources/config.edn")))
   (is (map? (load-config :resource "config.edn")))
   (is (map? (load-config :resource "config.edn"
@@ -442,3 +443,15 @@
                                :crux.jdbc/user "robocop"
                                :crux.jdbc/password "my friends call me Murphy"}}}
              merged)))))
+
+(deftest should-read-from-env-file
+  (let [expected {:dotted.key "dotted.key"
+                  :hyphen-key "hyphen-key"
+                  :namspaced/key "namespaced/key"
+                  :simple "simple"
+                  :empty-key ""
+                  :super {:nested {:key "super nested key"}}}]
+    (is (= expected
+           (select-keys (load-config :resource "config.edn"
+                                     :merge [(from-env-file "dev-resources/.env")])
+                        (keys expected))))))
