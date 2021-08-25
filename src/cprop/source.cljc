@@ -102,16 +102,20 @@
                      :to-ns-key (partial k->ns-str
                                          ns-key))))))
 
+(defn- read-env-map
+  [m opts]
+  (->> m
+       (map (fn [[k v]]
+              (let [path        (env->path k opts)]
+                [path (->> (with-as-is opts path)
+                           (str->value v))])))
+       (into {})))
+
 (defn read-system-env
   ([]
    (read-system-env {}))
   ([opts]
-   (->> (System/getenv)
-        (map (fn [[k v]]
-             (let [path        (env->path k opts)]
-               [path (->> (with-as-is opts path)
-                          (str->value v))])))
-        (into {}))))
+   (read-env-map (System/getenv) opts)))
 
 ;; System properties
 
@@ -252,6 +256,26 @@
        (catch Throwable t
          (throw (Throwable. (str "failed to parse \"" resource "\": ") t))))
      (throw (MissingResourceException. (str "resource \"" resource "\" not found on the resource path") "" "")))))
+
+(defn from-env-file
+  "Load an env file from a file on the filesystem
+  An env file is a file that contains environment variable.
+  The syntax is the same as Docker env file."
+  ([path]
+   (from-env-file path {}))
+  ([path opts]
+   (-> (with-open [rdr (io/reader path)]
+         (reduce (fn [m line]
+                   ;; match all lines that are not starting with #
+                   ;; capturing 2 groups :
+                   ;;  - the key which is the sequence of characters until `=` is found
+                   ;;  - the value which is the sequence of remaining characters (maybe empty) which is right of `=`
+                   (if-let [[_ k v] (re-matches #"([^#][^=]+)=(.*)" line)]
+                     (assoc m k v)
+                     m))
+                 {} (line-seq rdr)))
+       (read-env-map opts)
+       (sys->map))))
 
 (defn ignore-missing-default
   "in case source is not given (i.e. is nil) and default source is missing, ignore the error, return an empty map"
