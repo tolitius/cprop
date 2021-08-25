@@ -340,6 +340,12 @@ export HTTP__POOL__SOCKET_TIMEOUT=4242
 
 Notice how two underscores are used for "getting in" and a single underscore just gets converted to a dash to match the keyword.
 
+Namspaced and dotted keywords are also supported. 
+The `.` is written `.` but the namespace separator `/` must be written `___`
+For instance `dotted.namespaced/keyword` should be written `DOTTED.NAMESPACED___KEYWORD`
+
+For more complex scenarios, [customizing key path parsing](#customizing-key-path-parsing) is possible.
+
 #### Types
 
 ENV variables, when read by [(System/getenv)](https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#getenv--) are all _strings_.
@@ -605,7 +611,7 @@ The content of an .env file is a list of environment variables
 
 The following syntax rules apply to the .env file:
 
-- Compose expects each line in an .env file to be in VAR=VAL format
+- Each line in an .env file to be in VAR=VAL format
 - Lines beginning with # are processed as comments and ignored
 - Blank lines are ignored
 - There is no special handling of quotation marks. This means that they are part of the VAL
