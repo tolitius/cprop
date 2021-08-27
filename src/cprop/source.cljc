@@ -53,7 +53,7 @@
                to-ns-key)
          $)))
 
-(defn- str->value [v {:keys [as-is?]}]
+(defn- str->value
   "ENV vars and system properties are strings which means that there are no types, but string.
    This results in some interesting corner cases. for example:
 
@@ -66,6 +66,7 @@
      * true/false to boolean
      * and will use Clojure reader for the rest
    in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
+  [v {:keys [as-is?]}]
   (cond
     as-is? v
     (re-matches #"[0-9]+" v) (str->num v)

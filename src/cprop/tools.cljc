@@ -170,8 +170,9 @@
   (when (seq m)
     (flatten-keys* {} [] m)))
 
-(defn str->num [s]
+(defn str->num
   "Convert numeric string into `java.lang.Long` or `clojure.lang.BigInt`"
+  [s]
   (try
     (Long/parseLong s)
     (catch NumberFormatException _
