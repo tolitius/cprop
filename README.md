@@ -468,7 +468,7 @@ HYPHEN_KEY=hyphen-key
 
 EMPTY_KEY=
 
-## This is another comment
+## this is another comment
 DOTTED.KEY=dotted.key
 NAMSPACED___KEY=namespaced/key
 SUPER__NESTED__KEY=super nested key
