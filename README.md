@@ -27,7 +27,7 @@ where all configuration properties converge
   - [Merging ENV example](#merging-env-example)
 - [Merging with property files](#merging-with-property-files)
   - [Property files syntax](#property-files-syntax)
-- [Merging with env file](#merging-with-env-file)
+- [Merging with .env file](#merging-with-env-file)
 - [Read "as is" (not EDN)](#read-as-is-not-edn)
 - [Customizing key path parsing](#customizing-key-path-parsing)
 - [Cursors](#cursors)
@@ -338,13 +338,13 @@ For example to override a socket timeout in a form of:
 export HTTP__POOL__SOCKET_TIMEOUT=4242
 ```
 
-Notice how two underscores are used for "getting in" and a single underscore just gets converted to a dash to match the keyword.
+notice how two underscores are used for "getting in" and a single underscore just gets converted to a dash to match the keyword.
 
-Namspaced and dotted keywords are also supported. 
-The `.` is written `.` but the namespace separator `/` must be written `___`
-For instance `dotted.namespaced/keyword` should be written `DOTTED.NAMESPACED___KEYWORD`
+namspaced and dotted keywords are also supported.<br/>
+while `.` may be written `.` the namespace separator `/` must be written `___`<br/>
+for instance `dotted.namespaced/keyword` could be written as `DOTTED.NAMESPACED___KEYWORD`
 
-For more complex scenarios, [customizing key path parsing](#customizing-key-path-parsing) is possible.
+for ENV support (i.e. ENV does not do `.`s) or more complex scenarios take a look at [customizing key path parsing](#customizing-key-path-parsing) or [this](https://github.com/tolitius/cprop/commit/64580c66ff8f394ffebcf9744095a52c634c9c07) example.
 
 #### Types
 
@@ -606,17 +606,17 @@ will convert it to:
 
 ## Merging with env file
 
-.env files are very common in other communities (Ruby, Heroku, Docker).
-The content of an .env file is a list of environment variables
+`.env` files are very common in many software communities (devops, python, ruby, heroku, docker, etc.)<br/>
+the content of an `.env` file is a list of environment variables
 
-The following syntax rules apply to the .env file:
+the following syntax rules apply to the .env file:
 
-- Each line in an .env file to be in VAR=VAL format
-- Lines beginning with # are processed as comments and ignored
-- Blank lines are ignored
-- There is no special handling of quotation marks. This means that they are part of the VAL
+- each line in an `.env` file to be in `VAR=VAL` format
+- lines beginning with `#` are processed as comments and ignored
+- blank lines are ignored
+- there is no special handling of quotation marks. this means that they are part of the `VAL`
 
-In .env files you may follow [environment variables](#speaking-env-variables) syntaxe.
+for `.env` files you may follow [environment variables](#speaking-env-variables) supported syntax.
 
 ## Read "as is" (not EDN)
 

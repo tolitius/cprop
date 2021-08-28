@@ -1,4 +1,4 @@
-(def +version+ "0.1.18")
+(def +version+ "0.1.19")
 
 (set-env!
   :source-paths #{"src"}
