@@ -25,9 +25,9 @@ where all configuration properties converge
     - [Structure and keywords](#structure-and-keywords)
     - [Types](#types)
   - [Merging ENV example](#merging-env-example)
+- [Merging with .env file](#merging-with-env-file)
 - [Merging with property files](#merging-with-property-files)
   - [Property files syntax](#property-files-syntax)
-- [Merging with .env file](#merging-with-env-file)
 - [Read "as is" (not EDN)](#read-as-is-not-edn)
 - [Customizing key path parsing](#customizing-key-path-parsing)
 - [Cursors](#cursors)
@@ -445,6 +445,35 @@ substituting [:other-things] with a ENV/system.property specific value
 
 notice that `cprop` also tells you wnenever a property is substituted.
 
+## Merging with env file
+
+`.env` files are very common in many software communities (devops, python, ruby, heroku, docker, etc.)<br/>
+the content of an `.env` file is a list of environment variables
+
+the following syntax rules apply to the .env file:
+
+- each line in an `.env` file to be in `VAR=VAL` format
+- lines beginning with `#` are processed as comments and ignored
+- blank lines are ignored
+- there is no special handling of quotation marks. this means that they are part of the `VAL`
+
+for `.env` files you may follow [environment variables](#speaking-env-variables) supported syntax.
+
+```clojure
+(require ;[cprop.core :as cp]
+         '[cprop.source :as cs])
+
+(cp/load-config :merge [(cs/from-env-file
+                         "dev-resources/.env")])
+
+;; {:empty-key "",
+;;  :simple "simple",
+;;  :super {:nested {:key "super nested key"}},
+;;  :namspaced/key "namespaced/key",
+;;  :source {:account {:rabb...}}
+;;  ...}
+```
+
 ## Merging with property files
 
 It is important to be able to integrate with existing Java applications or simply with configurations that are done as `.properties` files, i.e. not EDN.
@@ -603,20 +632,6 @@ will convert it to:
   :venus {:orbit-days 224.7}},
  :dwarf {:pluto {:moons ["charon" "styx" "nix" "kerberos" "hydra"]}}}
 ```
-
-## Merging with env file
-
-`.env` files are very common in many software communities (devops, python, ruby, heroku, docker, etc.)<br/>
-the content of an `.env` file is a list of environment variables
-
-the following syntax rules apply to the .env file:
-
-- each line in an `.env` file to be in `VAR=VAL` format
-- lines beginning with `#` are processed as comments and ignored
-- blank lines are ignored
-- there is no special handling of quotation marks. this means that they are part of the `VAL`
-
-for `.env` files you may follow [environment variables](#speaking-env-variables) supported syntax.
 
 ## Read "as is" (not EDN)
 
