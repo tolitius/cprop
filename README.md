@@ -447,7 +447,7 @@ notice that `cprop` also tells you wnenever a property is substituted.
 
 ## Merging with env file
 
-`.env` files are very common in many software communities (devops, python, ruby, heroku, docker, etc.)<br/>
+`.env` files are common in devops and other software communities: python, ruby, heroku, docker, etc.<br/>
 the content of an `.env` file is a list of environment variables
 
 the following syntax rules apply to the .env file:
@@ -457,10 +457,27 @@ the following syntax rules apply to the .env file:
 - blank lines are ignored
 - there is no special handling of quotation marks. this means that they are part of the `VAL`
 
-for `.env` files you may follow [environment variables](#speaking-env-variables) supported syntax.
+cprop follows [environment variables](#speaking-env-variables) supported syntax to read `.env` files.
+
+here is an example of such a file that lives in [dev-resources/.env](dev-resources/.env):
+
+```bash
+# this is a comment
+SIMPLE=simple
+HYPHEN_KEY=hyphen-key
+
+EMPTY_KEY=
+
+## This is another comment
+DOTTED.KEY=dotted.key
+NAMSPACED___KEY=namespaced/key
+SUPER__NESTED__KEY=super nested key
+```
+
+in order to merge from it:
 
 ```clojure
-(require ;[cprop.core :as cp]
+(require '[cprop.core :as cp]
          '[cprop.source :as cs])
 
 (cp/load-config :merge [(cs/from-env-file
