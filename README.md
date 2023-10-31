@@ -998,7 +998,7 @@ Besides the `from-props-file` function that converts `.properties` file to a map
 
 ## License
 
-Copyright © 2020 tolitius
+Copyright © 2023 tolitius
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
