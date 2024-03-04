@@ -1,0 +1,26 @@
+{:paths ["src" "classes"]
+ :deps {} ;; deps no deps
+ :aliases {:dev {:extra-deps {metosin/jsonista {:mvn/version "0.3.8"}}}
+           :test {:extra-paths ["test" "dev-resources"]
+                  :extra-deps {io.github.cognitect-labs/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                                     :sha "e7660458ce25bc4acb4ccc3e2415aae0a4907198"}}
+                  :main-opts ["-m" "cognitect.test-runner"]
+                  :exec-fn cognitect.test-runner.api/test}
+           :repl {;; :extra-paths ["test" "test/resources"]
+                  :extra-deps {nrepl/nrepl {:mvn/version "0.7.0"}
+                               cider/cider-nrepl {:mvn/version "0.22.4"}
+                               org.clojure/tools.logging {:mvn/version "1.2.4"}
+                               com.bhauman/rebel-readline {:mvn/version "0.1.4"}}
+                  :main-opts ["-m" "nrepl.cmdline" "--middleware" "[cider.nrepl/cider-middleware]"
+                              "-i" "-f" "rebel-readline.main/-main"]}
+           :outdated {:extra-deps {olical/depot {:mvn/version "2.0.1"}}
+                      :main-opts  ["-m" "depot.outdated.main" "-a" "outdated"]}
+           :tag {:extra-deps {tolitius/tag {:mvn/version "0.1.7"}}
+                 :main-opts ["-m" "tag.core" "tolitius/cprop" "likes properties, environments, configs, profiles.."]}
+           :jar {:extra-deps {seancorfield/depstar {:mvn/version "1.1.128"}}
+                 :extra-paths ["target/about"]
+                 :main-opts ["-m" "hf.depstar.jar" "target/cprop.jar" "--exclude" "clojure/core/specs/alpha.*"]}
+           :deploy {:extra-deps {deps-deploy/deps-deploy {:mvn/version "RELEASE"}}
+                    :main-opts ["-m" "deps-deploy.deps-deploy" "deploy" "target/cprop.jar"]}
+           :install {:extra-deps {deps-deploy/deps-deploy {:mvn/version "RELEASE"}}
+                     :main-opts ["-m" "deps-deploy.deps-deploy" "install" "target/cprop.jar"]}}}
