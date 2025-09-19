@@ -4,7 +4,7 @@
            :test {:extra-paths ["test" "dev-resources"]
                   :extra-deps {io.github.cognitect-labs/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
                                                                      :sha "e7660458ce25bc4acb4ccc3e2415aae0a4907198"}}
-                  :main-opts ["-m" "cognitect.test-runner"]
+                  :main-opts ["-m" "cognitect.test-runner" "--namespace-regex" ".*\\.test\\..*"]
                   :exec-fn cognitect.test-runner.api/test}
            :repl {;; :extra-paths ["test" "test/resources"]
                   :extra-deps {nrepl/nrepl {:mvn/version "0.7.0"}
