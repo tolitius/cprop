@@ -230,7 +230,7 @@
   ([]
    (from-file (System/getProperty path-prop)))
   ([path]
-   (let [path (expand-home path)
+   (let [path (when (seq path) (expand-home path))
          file (io/file path)]
      (if (and file (.exists file))
        (try
