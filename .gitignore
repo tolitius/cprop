@@ -20,3 +20,4 @@ out/
 *.ipr
 *.iws
 .eastwood
+.DS_Store
